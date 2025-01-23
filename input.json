@@ -1,0 +1,29 @@
+{
+    "user": {
+      "payment_method": {
+        "card": {
+          "percentage": 50,
+          "next": {
+            "payment_method_type": {
+              "credit": 50,
+              "debit": 50
+            }
+          }
+        },
+        "bnpl": 30,
+        "wallet": 20
+      }
+    },
+    "psp": {
+      "config": {
+        "stripe": {
+          "key": {
+            "payment_method": "card",
+            "payment_method_type": "*"
+          },
+          "sr": 95
+        }
+      },
+      "otherwise": "failure"
+    }
+  }
