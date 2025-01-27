@@ -15,5 +15,5 @@ rand = "0.8.5"
 
 [[bin]]
 name = "testing-framework"
-path = "src/evaluator/evaluat.rs"
+path = "src/evaluator/evaluate.rs"
 
