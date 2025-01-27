@@ -3,6 +3,8 @@ use core::ops::Deref;
 use std::collections::HashMap;
 use crate::simulate::user::Sampler;
 use anyhow::{ensure, Context, Result};
+use rand::Rng;
+use std::fs;
 
 #[derive(Debug, Deserialize, Serialize, Eq, PartialEq, Clone, Hash)]
 #[serde(transparent)]
@@ -87,3 +89,94 @@ impl Deref for Parameters {
         &self.0
     }
 }
+
+
+#[derive(Debug, PartialEq, Eq, Deserialize)]
+#[serde(untagged)] // For supporting values and wildcard patterns
+pub enum Possible {
+    Value(Key),
+    Pattern(String),
+}
+
+// Status enum for the transaction result
+#[derive(Debug)]
+pub enum Status {
+    Success,
+    Failure,
+}
+
+// Configuration for a single connector
+#[derive(Debug, Deserialize)]
+pub struct ConnectorConfig {
+    pub key: HashMap<Key, Possible>,
+    pub sr: u8, // Success rate
+}
+
+// Main PSP configuration loaded from JSON
+#[derive(Debug, Deserialize)]
+pub struct PspSimulationConfig {
+    pub config: HashMap<String, ConnectorConfig>,
+    pub otherwise: String, // Default result as a string
+}
+
+// Convert String into Status for easy mapping
+impl PspSimulationConfig {
+    pub fn default_status(&self) -> Status {
+        match self.otherwise.as_str() {
+            "success" => Status::Success,
+            _ => Status::Failure,
+        }
+    }
+}
+
+// Evaluator trait for validation
+pub trait Evaluator {
+    fn validate_parameters(
+        &self,
+        connector: &str,
+    ) -> Result<Status>;
+}
+pub trait Recorder {
+    fn record_transaction(
+        &self,
+        connector: &str,
+        verdict: Status,
+    ) -> Result<()>;
+    
+}
+
+// Implement Evaluator for PspSimulationConfig
+impl Evaluator for PspSimulationConfig {
+    fn validate_parameters(
+        &self,
+        connector: &str,
+    ) -> Result<Status> {
+        let mut rng = rand::thread_rng();
+
+        // Find the connector configuration
+        if let Some(config) = self.config.get(connector) {
+            let success = rng.gen_bool(config.sr as f64 / 100.0);
+            return Ok(if success { Status::Success } else { Status::Failure });
+        }
+        Ok(self.default_status())
+    }
+}
+
+// Function to load the configuration from input.json
+pub fn load_config(file_path: &str) -> Result<PspSimulationConfig> {
+    let json_content = fs::read_to_string(file_path)
+        .with_context(|| format!("Failed to read configuration file: {}", file_path))?;
+    
+    // Extract only the "psp" part of the JSON
+    let json_value: serde_json::Value = serde_json::from_str(&json_content)
+        .with_context(|| "Failed to parse JSON configuration")?;
+    let psp_json = json_value.get("psp")
+        .with_context(|| "Failed to find 'psp' in JSON configuration")?;
+    // println!("Extracted 'psp' JSON: {}", psp_json);
+    
+    let config: PspSimulationConfig = serde_json::from_value(psp_json.clone())
+        .with_context(|| "Failed to parse 'psp' JSON configuration")?;
+    // println!("Parsed configuration: {:?}", config);
+    Ok(config)
+}
+

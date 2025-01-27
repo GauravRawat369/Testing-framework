@@ -21,7 +21,14 @@
             "payment_method": "card",
             "payment_method_type": "*"
           },
-          "sr": 95
+          "sr": 50
+        },
+        "adyen": {
+          "key": {
+            "payment_method": "wallet",
+            "payment_method_type": "*"
+          },
+          "sr": 0
         }
       },
       "otherwise": "failure"

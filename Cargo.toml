@@ -15,8 +15,5 @@ rand = "0.8.5"
 
 [[bin]]
 name = "testing-framework"
-path = "src/app/cli.rs"
+path = "src/evaluator/evaluat.rs"
 
-[[bin]]
-name = "testing-framework-server"
-path = "src/app/server.rs"
