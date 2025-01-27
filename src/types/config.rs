@@ -118,7 +118,7 @@ impl Deref for Parameters {
 }
 
 
-#[derive(Debug, PartialEq, Eq, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(untagged)] // For supporting values and wildcard patterns
 pub enum Possible {
     Value(Key),
@@ -133,14 +133,14 @@ pub enum Status {
 }
 
 // Configuration for a single connector
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct ConnectorConfig {
     pub key: HashMap<Key, Possible>,
     pub sr: u8, // Success rate
 }
 
 // Main PSP configuration loaded from JSON
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct PspSimulationConfig {
     pub config: HashMap<String, ConnectorConfig>,
     pub otherwise: String, // Default result as a string
