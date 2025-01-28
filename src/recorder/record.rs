@@ -17,10 +17,10 @@ impl Recorder for Config {
         user: &UserSimulationConfig,
         psp: &PspSimulationConfig,
     ) -> Result<()> {
-        println!("Recording transaction for connector: {}", connector);
-        println!("Verdict: {:?}", verdict);
-        println!("User: {:?}", user);
-        println!("PSP: {:?}", psp);
+        // println!("Recording transaction for connector: {}", connector);
+        // println!("Verdict: {:?}", verdict);
+        // println!("User: {:?}", user);
+        // println!("PSP: {:?}", psp);
         Ok(())
     }
 }

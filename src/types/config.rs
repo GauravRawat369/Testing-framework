@@ -5,15 +5,15 @@ use crate::simulate::user::Sampler;
 use std::path::Path;
 use anyhow::{ensure, Context, Result};
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Config {
     pub user: UserSimulationConfig,
     pub psp: PspSimulationConfig,
+    pub merchant: MerchantSimulationConfig,
 }
 
 impl Config {
     pub fn load() -> Result<Self> {
-
         // Then try current directory
         let default_path = Path::new("input.json");
         if default_path.exists() {
@@ -32,8 +32,8 @@ impl Config {
         serde_json::from_str(&config_str).with_context(|| "Failed to parse config file")
     }
 }
-#[derive(Debug, Deserialize, Serialize, Eq, PartialEq, Clone, Hash)]
 
+#[derive(Debug, Deserialize, Serialize, Eq, PartialEq, Clone, Hash)]
 #[serde(transparent)]
 pub struct Key(pub String);
 
@@ -117,7 +117,6 @@ impl Deref for Parameters {
     }
 }
 
-
 #[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(untagged)] // For supporting values and wildcard patterns
 pub enum Possible {
@@ -126,7 +125,7 @@ pub enum Possible {
 }
 
 // Status enum for the transaction result
-#[derive(Debug)]
+#[derive(Debug, Deserialize)]
 pub enum Status {
     Success,
     Failure,
@@ -139,10 +138,16 @@ pub struct ConnectorConfig {
     pub sr: u8, // Success rate
 }
 
+#[derive(Debug, Deserialize, Serialize)]
+pub struct PspTimeConfig {
+    pub key: HashMap<Key, Key>,
+}
+
 // Main PSP configuration loaded from JSON
 #[derive(Debug, Deserialize, Serialize)]
 pub struct PspSimulationConfig {
     pub config: HashMap<String, ConnectorConfig>,
+    pub pspTimeConfig: PspTimeConfig,
     pub otherwise: String, // Default result as a string
 }
 
@@ -153,6 +158,23 @@ impl PspSimulationConfig {
             "success" => Status::Success,
             _ => Status::Failure,
         }
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct MerchantSimulationConfig {
+    pub config: HashMap<String, ConnectorConfig>,
+    pub timeConfig: Key,
+    pub otherwise: String, // Default result as a string
+}
+
+impl MerchantSimulationConfig {
+    pub fn get_connector_list(&self) -> Result<Vec<String>> {
+        let mut connectors = Vec::new();
+        for (key, _) in self.config.iter() {
+            connectors.push(key.clone());
+        }
+        Ok(connectors)
     }
 }
 
