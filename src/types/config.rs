@@ -167,13 +167,11 @@ impl PspSimulationConfig {
 
 pub struct MerchantConfig {
     pub key: HashMap<Key, Possible>,
-    pub sr: u8, // Success rate
 }
 #[derive(Debug, Deserialize, Serialize)]
 pub struct MerchantSimulationConfig {
     pub config: HashMap<String, MerchantConfig>,
     pub timeConfig: Key,
-    pub otherwise: String, // Default result as a string
 }
 
 impl MerchantSimulationConfig {

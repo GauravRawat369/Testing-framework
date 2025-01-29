@@ -59,11 +59,15 @@
         "key": {
           "payment_method": "card",
           "payment_method_type": "*"
-        },
-        "sr": 95
+        }
+      },
+      "adyen": {
+        "key": {
+          "payment_method": "card",
+          "payment_method_type": "*"
+        }
       }
     },
-    "timeConfig": "10000",
-    "otherwise": "failure"
+    "timeConfig": "10000"
   }
 }

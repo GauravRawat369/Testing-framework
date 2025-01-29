@@ -2,7 +2,6 @@ use anyhow::Result;
 use crate::types::config::{Key, Possible, PspSimulationConfig, Status};
 use rand::Rng;
 
-
 pub trait Evaluator {
     fn call_evaluator(
         &self,
