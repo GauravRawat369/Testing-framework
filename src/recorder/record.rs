@@ -1,23 +1,17 @@
-use crate::types::config::{Config, Key, PspSimulationConfig, Status, UserSimulationConfig};
+use crate::types::config::{Payment_Recorder_data, Key, Status,};
 use anyhow::Result;
 use csv::Writer;
 use std::fs::OpenOptions;
 
 pub trait Recorder {
     fn record_transaction(
-        connector: &Key,
-        verdict: Status,
-        user: &UserSimulationConfig,
-        psp: &PspSimulationConfig,
+        &self,
     ) -> Result<()>;
 }
 
-impl Recorder for Config {
+impl Recorder for Payment_Recorder_data {
     fn record_transaction(
-        connector: &Key,
-        verdict: Status,
-        user: &UserSimulationConfig,
-        psp: &PspSimulationConfig,
+        &self,
     ) -> Result<()> {
         // Open the CSV file in append mode
         let file = OpenOptions::new()
@@ -30,10 +24,9 @@ impl Recorder for Config {
 
         // Write the transaction details to the CSV file
         wtr.write_record(&[
-            &connector.0,
-            &format!("{:?}", verdict),
-            &serde_json::to_string(user).unwrap(),
-            &serde_json::to_string(psp).unwrap(),
+            &self.connector.0,
+            &format!("{:?}", &self.verdict),
+            &serde_json::to_string(&self.payment_data).unwrap(),
         ])?;
         wtr.flush()?;
         Ok(())

@@ -194,6 +194,22 @@ impl StraightThroughRouting{
     }
     
 }
+pub struct Payment_Recorder_data{
+    pub connector: Key,
+    pub verdict: Status,
+    pub payment_data: Key,
+}
+impl Payment_Recorder_data {
+    pub fn set_values(connector: Key, verdict: Status, payment_data: Key) -> Self {
+        Payment_Recorder_data {
+            connector,
+            verdict,
+            payment_data,
+        }
+    }
+    
+}
+
 
 
 
