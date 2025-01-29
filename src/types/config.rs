@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use crate::simulate::user::Sampler;
 use std::path::Path;
 use anyhow::{ensure, Context, Result};
+use rand::Rng;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Config {
@@ -136,7 +137,9 @@ pub enum Status {
 pub struct ConnectorConfig {
     pub key: HashMap<Key, Possible>,
     pub sr: u8, // Success rate
+    pub pspTimeConfig: HashMap<Key, Key>,
 }
+
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct PspTimeConfig {
@@ -147,7 +150,6 @@ pub struct PspTimeConfig {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct PspSimulationConfig {
     pub config: HashMap<String, ConnectorConfig>,
-    pub pspTimeConfig: PspTimeConfig,
     pub otherwise: String, // Default result as a string
 }
 
@@ -162,8 +164,14 @@ impl PspSimulationConfig {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
+
+pub struct MerchantConfig {
+    pub key: HashMap<Key, Possible>,
+    pub sr: u8, // Success rate
+}
+#[derive(Debug, Deserialize, Serialize)]
 pub struct MerchantSimulationConfig {
-    pub config: HashMap<String, ConnectorConfig>,
+    pub config: HashMap<String, MerchantConfig>,
     pub timeConfig: Key,
     pub otherwise: String, // Default result as a string
 }
@@ -178,7 +186,16 @@ impl MerchantSimulationConfig {
     }
 }
 
-
+pub struct StraightThroughRouting{
+    pub connectors: Vec<Key>
+}
+impl StraightThroughRouting{
+    pub fn get_connector(&self) -> Key{
+        let mut rng = rand::thread_rng();
+        self.connectors[rng.gen_range(0..self.connectors.len())].clone()
+    }
+    
+}
 
 
 

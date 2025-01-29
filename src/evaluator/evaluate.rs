@@ -1,27 +1,25 @@
 use anyhow::Result;
-use crate::types::config::{PspSimulationConfig, Status, Possible};
+use crate::types::config::{Key, Possible, PspSimulationConfig, Status};
 use rand::Rng;
-// Evaluator trait for validation
+
 
 pub trait Evaluator {
     fn call_evaluator(
         &self,
-        connector: &str,
+        connector: &Key,
         user_sample: &str,
     ) -> Result<Status>;
 }
 
-// Implement Evaluator for PspSimulationConfig
 impl Evaluator for PspSimulationConfig {
     fn call_evaluator(
         &self,
-        connector: &str,
+        connector: &Key,
         user_sample: &str,
     ) -> Result<Status> {
         let mut rng = rand::thread_rng();
 
-        // Find the connector configuration
-        if let Some(config) = self.config.get(connector) {
+        if let Some(config) = self.config.get(&connector.0) {
             // Check if user sample matches the sample inside the config
             let matches = config.key.iter().all(|(key, possible)| {
                 // println!("possible value is : {:?}", key.0);

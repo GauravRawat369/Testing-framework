@@ -16,20 +16,41 @@
   },
   "psp": {
     "config": {
-      "stripe": {
+      "stripe": {    
         "key": {
           "payment_method": "card",
           "payment_method_type": "*"
         },
-        "sr": 95
+        "sr": 100,
+        "pspTimeConfig":{
+            "mean": "500",
+            "stddev": "100"
+         }
+      },
+      "adyen": {
+        "key": {
+          "payment_method": "bnpl",
+          "payment_method_type": "*"
+        },
+        "sr": 90,
+        "pspTimeConfig":{
+            "mean": "500",
+            "stddev": "100"
+         }
+      },
+      "paypal": {
+        "key": {
+          "payment_method": "wallet",
+          "payment_method_type": "*"
+        },
+        "sr": 90,
+        "pspTimeConfig":{
+            "mean": "500",
+            "stddev": "100"
+         }
       }
     },
-    "pspTimeConfig": {
-      "key": {
-          "mean": "500",
-          "stddev": "100"
-      }
-    },
+
     "otherwise": "failure"
   },
   "merchant": {
@@ -39,7 +60,7 @@
           "payment_method": "card",
           "payment_method_type": "*"
         },
-        "sr":95
+        "sr": 95
       }
     },
     "timeConfig": "10000",
