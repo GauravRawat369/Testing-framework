@@ -10,12 +10,11 @@ use rand::Rng;
 pub struct Config {
     pub user: UserSimulationConfig,
     pub psp: PspSimulationConfig,
-    pub merchant: MerchantSimulationConfig,
+    pub merchant: MerchantConfig,
 }
 
 impl Config {
     pub fn load() -> Result<Self> {
-        // Then try current directory
         let default_path = Path::new("input.json");
         if default_path.exists() {
             let output = Self::load_from_path(default_path)?;
@@ -60,13 +59,19 @@ pub struct SimulationConfig(HashMap<Key, Parameters>);
 pub struct UserSimulationConfig {
     #[serde(flatten)]
     pub parameters: SimulationConfig,
+    pub amount: AmountRange,
 }
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct AmountRange { min: u64, max: u64}
 
 impl Sampler for UserSimulationConfig {
     fn generate_sample(&self) -> Result<HashMap<&Key, &Key>> {
         Self::list_parameters(&self.parameters)
     }
+
 }
+
 
 impl Parameters {
     pub fn validate(&self) -> Result<()> {
@@ -137,7 +142,7 @@ pub enum Status {
 pub struct ConnectorConfig {
     pub key: HashMap<Key, Possible>,
     pub sr: u8, // Success rate
-    pub pspTimeConfig: HashMap<Key, Key>,
+    pub psp_time_config: HashMap<Key, Key>,
 }
 
 
@@ -164,24 +169,58 @@ impl PspSimulationConfig {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-
 pub struct MerchantConfig {
-    pub key: HashMap<Key, Possible>,
-}
+    pub config: HashMap<Key, PaymentMethodConfig>,
+    pub time_config: Key,
+} 
+
 #[derive(Debug, Deserialize, Serialize)]
-pub struct MerchantSimulationConfig {
-    pub config: HashMap<String, MerchantConfig>,
-    pub timeConfig: Key,
+pub struct PaymentMethodConfig {
+    pub key: HashMap<Key, Possible>
 }
 
-impl MerchantSimulationConfig {
-    pub fn get_connector_list(&self) -> Result<Vec<String>> {
-        let mut connectors = Vec::new();
-        for (key, _) in self.config.iter() {
-            connectors.push(key.clone());
+// impl MerchantConfig {
+//     pub fn get_connector_list(&self) -> Result<Vec<String>> {
+//         let mut connectors = Vec::new();
+//         for (key, _) in self.config.iter() {
+//             connectors.push(key.clone());
+//         }
+//         Ok(connectors)
+//     }
+// }
+// #[derive(Debug, Deserialize, Serialize)]
+// pub struct PaymentMethodKey {
+//     pub payment_method: String,
+//     pub payment_method_type: String, 
+//     pub amount_less_than: Option<u64>,
+// }
+
+pub fn find_suitable_connectors (
+    sample: &HashMap<&Key, &Key>,
+    merchant_config: &MerchantConfig) -> Vec<Key> {
+        let mut suitable_connectors = Vec::new();
+        let payment_method = sample.get(&Key("payment_method".to_string())).unwrap().to_owned();
+        // println!("payment_method is : {:?}", payment_method);
+
+        for (k, v) in &merchant_config.config  {
+            let val = v.key.get(&Key("payment_method".to_string())).unwrap();
+            match val {
+                Possible::Value(value) => {
+                    if value == payment_method {
+                        // println!("value is : {:?}", value);
+                        suitable_connectors.push(k.clone());
+                    }
+                }
+                Possible::Pattern(_pattern) => {
+                    // if pattern == payment_method {
+                    //     suitable_connectors.push(k.clone());
+                    // }
+                }
+            }
+            // println!("Payment Method in first value of merchant_config: key = {:?}, value = {:?}", k, );
         }
-        Ok(connectors)
-    }
+        
+        suitable_connectors
 }
 
 pub struct StraightThroughRouting{
@@ -194,14 +233,14 @@ impl StraightThroughRouting{
     }
     
 }
-pub struct Payment_Recorder_data{
+pub struct PaymentRecorderData{
     pub connector: Key,
     pub verdict: Status,
     pub payment_data: Key,
 }
-impl Payment_Recorder_data {
+impl PaymentRecorderData {
     pub fn set_values(connector: Key, verdict: Status, payment_data: Key) -> Self {
-        Payment_Recorder_data {
+        PaymentRecorderData {
             connector,
             verdict,
             payment_data,

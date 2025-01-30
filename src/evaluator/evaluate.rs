@@ -1,6 +1,6 @@
 use anyhow::Result;
 use crate::types::config::{Key, Possible, PspSimulationConfig, Status,};
-use crate::types::config::Payment_Recorder_data;
+use crate::types::config::PaymentRecorderData;
 use rand::Rng;
 
 pub trait Evaluator {
@@ -21,7 +21,7 @@ impl Evaluator for PspSimulationConfig {
 
         if let Some(config) = self.config.get(&connector.0) {
             // Check if user sample matches the sample inside the config
-            let matches = config.key.iter().all(|(key, possible)| {
+            let matches = config.key.iter().all(|(_key, possible)| {
                 // println!("possible value is : {:?}", key.0);
                 match possible {
                     Possible::Value(value) => {
@@ -45,7 +45,7 @@ impl Evaluator for PspSimulationConfig {
             });
 
             if matches {
-                Payment_Recorder_data::set_values(connector.clone(), Status::Success, Key(user_sample.to_string()));
+                PaymentRecorderData::set_values(connector.clone(), Status::Success, Key(user_sample.to_string()));
                 let success = rng.gen_bool(config.sr as f64 / 100.0);
                 return Ok(if success { Status::Success } else { Status::Failure });
             }

@@ -2,27 +2,29 @@
   "user": {
     "payment_method": {
       "card": {
-        "percentage": 50,
+        "percentage": 100,
         "next": {
           "payment_method_type": {
             "credit": 50,
             "debit": 50
           }
         }
-      },
-      "bnpl": 30,
-      "wallet": 20
+      }
+    },
+    "amount": {
+      "min": 100,
+      "max": 1000
     }
   },
   "psp": {
     "config": {
-      "stripe": {    
+      "stripe": {
         "key": {
           "payment_method": "card",
           "payment_method_type": "*"
         },
         "sr": 100,
-        "pspTimeConfig":{
+        "psp_time_config":{
             "mean": "500",
             "stddev": "100"
          }
@@ -32,8 +34,8 @@
           "payment_method": "bnpl",
           "payment_method_type": "*"
         },
-        "sr": 90,
-        "pspTimeConfig":{
+       "sr": 90, 
+        "psp_time_config":{
             "mean": "500",
             "stddev": "100"
          }
@@ -44,13 +46,12 @@
           "payment_method_type": "*"
         },
         "sr": 90,
-        "pspTimeConfig":{
+        "psp_time_config":{
             "mean": "500",
             "stddev": "100"
          }
       }
     },
-
     "otherwise": "failure"
   },
   "merchant": {
@@ -68,6 +69,12 @@
         }
       }
     },
-    "timeConfig": "10000"
+    "time_config": "10000"
   }
 }
+
+
+
+
+
+

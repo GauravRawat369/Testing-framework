@@ -1,4 +1,4 @@
-use crate::types::config::{Payment_Recorder_data, Key, Status,};
+use crate::types::config::PaymentRecorderData;
 use anyhow::Result;
 use csv::Writer;
 use std::fs::OpenOptions;
@@ -9,7 +9,7 @@ pub trait Recorder {
     ) -> Result<()>;
 }
 
-impl Recorder for Payment_Recorder_data {
+impl Recorder for PaymentRecorderData {
     fn record_transaction(
         &self,
     ) -> Result<()> {
