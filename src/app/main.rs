@@ -11,26 +11,22 @@ fn generate_user_sample(config: &Config) -> Result<(String, Vec<Key>)> {
     println!("Simulated User Sample: {}", output);
     Ok((output, connectors))
 }
-
-fn main() -> Result<()> {
+fn call_script() -> Result<()>{
     let config = Config::load()?;
-
-    // println!("User config: {:?}", config.user);
-
     let (user_sample, connectors) = generate_user_sample(&config)?;
-    // println!("Available connectors for this user: {:?}", connectors);
+    if connectors.is_empty() {
+        println!("No connectors available for this user in merchant config.");
+        return Ok(());
+    }
     println!("Available connectors for this user:");
     for connector in &connectors {
         println!("{}", connector.0);
     }
-    //merchant and user config will give this list of connectors
-    // let connectors = vec![Key("stripe".to_string()), Key("paypal".to_string()), Key("adyen".to_string())];
 
-    // let connectors = find_suitable_connectors(user_sample, &config.merchant);
     let routing = StraightThroughRouting {connectors};
     let connector = routing.get_connector(); // Get the connector name as a string
-    println!("Using connector: {:?}", connector.0);
 
+    println!("Using connector: {:?}", connector.0);
     match config.psp.call_evaluator(&connector, &user_sample)? {
         Status::Success => {
             println!("Transaction succeeded.");
@@ -46,5 +42,12 @@ fn main() -> Result<()> {
         },
     }
 
+    Ok(())
+}
+fn main() -> Result<()> {
+    
+    for _ in 0..1500 {
+        call_script()?;
+    }
     Ok(())
 }

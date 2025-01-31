@@ -2,14 +2,16 @@
   "user": {
     "payment_method": {
       "card": {
-        "percentage": 100,
+        "percentage": 50,
         "next": {
           "payment_method_type": {
             "credit": 50,
             "debit": 50
           }
         }
-      }
+      },
+      "bnpl":25,
+      "wallet": 25
     },
     "amount": {
       "min": 100,
@@ -23,7 +25,7 @@
           "payment_method": "card",
           "payment_method_type": "*"
         },
-        "sr": 100,
+        "sr": 70,
         "psp_time_config":{
             "mean": "500",
             "stddev": "100"
@@ -34,7 +36,7 @@
           "payment_method": "bnpl",
           "payment_method_type": "*"
         },
-       "sr": 90, 
+       "sr": 50, 
         "psp_time_config":{
             "mean": "500",
             "stddev": "100"
@@ -45,7 +47,7 @@
           "payment_method": "wallet",
           "payment_method_type": "*"
         },
-        "sr": 90,
+        "sr": 30,
         "psp_time_config":{
             "mean": "500",
             "stddev": "100"
@@ -64,7 +66,13 @@
       },
       "adyen": {
         "key": {
-          "payment_method": "card",
+          "payment_method": "bnpl",
+          "payment_method_type": "*"
+        }
+      },
+      "paypal": {
+        "key": {
+          "payment_method": "wallet",
           "payment_method_type": "*"
         }
       }

@@ -45,7 +45,6 @@ impl Evaluator for PspSimulationConfig {
             });
 
             if matches {
-                PaymentRecorderData::set_values(connector.clone(), Status::Success, Key(user_sample.to_string()));
                 let success = rng.gen_bool(config.sr as f64 / 100.0);
                 return Ok(if success { Status::Success } else { Status::Failure });
             }

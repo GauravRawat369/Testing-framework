@@ -1,0 +1,25 @@
+{
+    "psp": {
+        "config": {
+            "stripe": {
+                "0": {
+                    "payment_data": {
+                        "payment_method": "card",
+                        "payment_method_type": "*"
+                    },
+                    "sr": 60,
+                    "psp_time_config": {}
+                },
+                "1": {
+                    "payment_data": {
+                        "payment_method": "wallet",
+                        "payment_method_type": "*"
+                    },
+                    "sr": 90,
+                    "psp_time_config": {}
+                }
+            }
+        },
+        "otherwise": "failure"
+    }
+}
