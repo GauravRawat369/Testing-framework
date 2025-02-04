@@ -10,8 +10,24 @@
           }
         }
       },
-      "bnpl":25,
-      "wallet": 25
+      "bnpl": {
+        "percentage": 30,
+        "next": {
+          "payment_method_type": {
+            "debit": 50,
+            "credit": 50
+          }
+        }
+      },
+      "wallet": {
+        "percentage": 20,
+        "next": {
+          "payment_method_type": {
+            "debit": 50,
+            "credit": 50
+          }
+        }
+      }
     },
     "amount": {
       "min": 100,
@@ -21,37 +37,78 @@
   "psp": {
     "config": {
       "stripe": {
-        "key": {
-          "payment_method": "card",
-          "payment_method_type": "*"
-        },
-        "sr": 70,
-        "psp_time_config":{
-            "mean": "500",
-            "stddev": "100"
-         }
+        "key": [
+          {
+            "payment_method": "card",
+            "payment_method_type": "*",
+            "sr": 70
+          },
+          {
+            "payment_method": "bnpl",
+            "payment_method_type": "*",
+            "sr": 60
+          },
+          {
+            "payment_method": "wallet",
+            "payment_method_type": "*",
+            "sr": 60
+          }
+        ],
+        "psp_time_config": {
+          "mean": "500",
+          "stddev": "100"
+        }
       },
       "adyen": {
-        "key": {
-          "payment_method": "bnpl",
-          "payment_method_type": "*"
-        },
-       "sr": 50, 
-        "psp_time_config":{
-            "mean": "500",
-            "stddev": "100"
-         }
+        "key": [
+          {
+            "payment_method": "card",
+            "payment_method_type": "credit",
+            "sr": 50
+          },
+          {
+            "payment_method": "card",
+            "payment_method_type": "debit",
+            "sr": 50
+          },
+          {
+            "payment_method": "bnpl",
+            "payment_method_type": "*",
+            "sr": 40
+          },
+          {
+            "payment_method": "wallet",
+            "payment_method_type": "*",
+            "sr": 40
+          }
+        ],
+        "psp_time_config": {
+          "mean": "500",
+          "stddev": "100"
+        }
       },
       "paypal": {
-        "key": {
-          "payment_method": "wallet",
-          "payment_method_type": "*"
-        },
-        "sr": 30,
-        "psp_time_config":{
-            "mean": "500",
-            "stddev": "100"
-         }
+        "key": [
+          {
+            "payment_method": "card",
+            "payment_method_type": "*",
+            "sr": 30
+          },
+          {
+            "payment_method": "bnpl",
+            "payment_method_type": "*",
+            "sr": 20
+          },
+          {
+            "payment_method": "wallet",
+            "payment_method_type": "*",
+            "sr": 20
+          }
+        ],
+        "psp_time_config": {
+          "mean": "500",
+          "stddev": "100"
+        }
       }
     },
     "otherwise": "failure"
@@ -59,22 +116,52 @@
   "merchant": {
     "config": {
       "stripe": {
-        "key": {
-          "payment_method": "card",
-          "payment_method_type": "*"
-        }
+        "key": [
+          {
+            "payment_method": "card",
+            "payment_method_type": "*"
+          },
+          {
+            "payment_method": "bnpl",
+            "payment_method_type": "*"
+          },
+          {
+            "payment_method": "wallet",
+            "payment_method_type": "*"
+          }
+        ]
       },
       "adyen": {
-        "key": {
-          "payment_method": "bnpl",
-          "payment_method_type": "*"
-        }
+        "key": [
+          {
+            "payment_method": "card",
+            "payment_method_type": "*"
+          },
+          {
+            "payment_method": "bnpl",
+            "payment_method_type": "*"
+          },
+          {
+            "payment_method": "wallet",
+            "payment_method_type": "*"
+          }
+        ]
       },
       "paypal": {
-        "key": {
-          "payment_method": "wallet",
-          "payment_method_type": "*"
-        }
+        "key": [
+          {
+            "payment_method": "card",
+            "payment_method_type": "*"
+          },
+          {
+            "payment_method": "bnpl",
+            "payment_method_type": "*"
+          },
+          {
+            "payment_method": "wallet",
+            "payment_method_type": "*"
+          }
+        ]
       }
     },
     "time_config": "10000"

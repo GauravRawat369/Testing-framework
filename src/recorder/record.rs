@@ -1,7 +1,6 @@
 use crate::types::config::PaymentRecorderData;
 use crate::types::config::Key;
 use std::collections::HashMap;
-
 use anyhow::Result;
 use csv::Writer;
 use std::fs::OpenOptions;
@@ -17,7 +16,7 @@ impl Recorder for PaymentRecorderData {
         &self,
     ) -> Result<()> {
         // Open the CSV file in append mode
-        let data = self.clone();
+        let data = self;
         let file = OpenOptions::new()
             .write(true)
             .create(true)
@@ -44,6 +43,7 @@ impl Recorder for PaymentRecorderData {
             payment_method_type_str = payment_method_type.to_string();
             record.push(&payment_method_type_str);
         }
+        let payment_result = Key(verdict_str.clone());
 
         wtr.write_record(&record)?;
         wtr.flush()?;

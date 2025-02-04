@@ -20,33 +20,14 @@ impl Evaluator for PspSimulationConfig {
         let mut rng = rand::thread_rng();
 
         if let Some(config) = self.config.get(&connector.0) {
-            // Check if user sample matches the sample inside the config
-            let matches = config.key.iter().all(|(_key, possible)| {
-                // println!("possible value is : {:?}", key.0);
-                match possible {
-                    Possible::Value(value) => {
+            for payment_method_config in &config.key {
+                let matches = user_sample.contains(&payment_method_config.payment_method.0)
+                    && user_sample.contains(&payment_method_config.payment_method_type.0);
 
-                        // println!("value is : {:?}", value.0);
-                        if value.0 == "*" {
-                            true
-                        } else {
-                            user_sample.contains(&value.0)
-                        }
-                    }
-                    Possible::Pattern(pattern) => {
-                        // println!("pattern value is : {:?}", pattern.0);
-                        if pattern.0 == "*" {
-                            true
-                        } else {
-                            user_sample.contains(&pattern.0)
-                        }
-                    },
+                if matches {
+                    let success = rng.gen_bool(payment_method_config.sr as f64 / 100.0);
+                    return Ok(if success { Status::Success } else { Status::Failure });
                 }
-            });
-
-            if matches {
-                let success = rng.gen_bool(config.sr as f64 / 100.0);
-                return Ok(if success { Status::Success } else { Status::Failure });
             }
         }
         Ok(self.default_status())

@@ -1,18 +1,20 @@
 use anyhow::Result;
 use testing_framework::{types::config::Config, simulate::user::Sampler};
-use testing_framework::types::config::{find_suitable_connectors, Key, Status, StraightThroughRouting, PaymentRecorderData};
+use testing_framework::types::config::{find_suitable_connectors, Key, PaymentRecorderData, Status, StraightThroughRouting};
 use testing_framework::evaluator::evaluate::Evaluator;
 use testing_framework::recorder::record::Recorder;
+
 
 fn generate_user_sample(config: &Config) -> Result<(String, Vec<Key>)> {
     let output = config.user.generate_sample()?;
     let connectors = find_suitable_connectors(&output, &config.merchant);
     let output = serde_json::to_string_pretty(&output)?;
-    println!("Simulated User Sample: {}", output);
+    println!("Generated user sample: {}", output);
     Ok((output, connectors))
 }
 fn call_script() -> Result<()>{
     let config = Config::load()?;
+    // println!("Loaded config: {:?}", config);
     let (user_sample, connectors) = generate_user_sample(&config)?;
     if connectors.is_empty() {
         println!("No connectors available for this user in merchant config.");
@@ -46,7 +48,7 @@ fn call_script() -> Result<()>{
 }
 fn main() -> Result<()> {
     
-    for _ in 0..1500 {
+    for _ in 0..3000 {
         call_script()?;
     }
     Ok(())

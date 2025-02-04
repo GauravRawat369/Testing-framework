@@ -19,6 +19,7 @@ impl Config {
         if default_path.exists() {
             let output = Self::load_from_path(default_path)?;
             output.user.validate()?;
+            // println!("psp config {:?}: ", output.psp);
             return Ok(output);
         }
 
@@ -123,15 +124,24 @@ impl Deref for Parameters {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
-#[serde(untagged)] // For supporting values and wildcard patterns
+#[derive(Debug, Eq, Deserialize, Serialize)]
+#[serde(untagged)] 
 pub enum Possible {
     Value(Key),
-    Pattern(Key),
+    Any,
+}
+impl PartialEq for Possible {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Possible::Any, _) => true,
+            (_, Possible::Any) => true,
+            (Possible::Value(a), Possible::Value(b)) => a == b,
+        }
+    }
 }
 
 // Status enum for the transaction result
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Eq, PartialEq, Hash)]
 pub enum Status {
     Success,
     Failure,
@@ -140,11 +150,23 @@ pub enum Status {
 // Configuration for a single connector
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ConnectorConfig {
-    pub key: HashMap<Key, Possible>,
-    pub sr: u8, // Success rate
+    pub key: Vec<PaymentMethodTypeConfig>,
     pub psp_time_config: HashMap<Key, Key>,
 }
 
+#[derive(Debug, Deserialize, Serialize)]
+pub struct PaymentMethodTypeConfig {
+    pub payment_method: Key,
+    pub payment_method_type: Key,
+    pub sr: u8, // Success rate
+}
+
+#[derive(Debug, Deserialize, Serialize)]    
+pub struct MerchantMethodTypeConfig {
+    pub payment_method: Key,
+    pub payment_method_type: Key,
+    
+}
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct PspTimeConfig {
@@ -169,14 +191,18 @@ impl PspSimulationConfig {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
+pub struct PspConfig {
+    pub key: Vec<MerchantMethodTypeConfig>
+}
+#[derive(Debug, Deserialize, Serialize)]
 pub struct MerchantConfig {
-    pub config: HashMap<Key, PaymentMethodConfig>,
+    pub config: HashMap<Key, PspConfig>,
     pub time_config: Key,
 } 
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct PaymentMethodConfig {
-    pub key: HashMap<Key, Possible>
+    pub key: Vec<PaymentMethodTypeConfig>,
 }
 
 // impl MerchantConfig {
@@ -200,24 +226,14 @@ pub fn find_suitable_connectors (
     merchant_config: &MerchantConfig) -> Vec<Key> {
         let mut suitable_connectors = Vec::new();
         let payment_method = sample.get(&Key("payment_method".to_string())).unwrap().to_owned();
-        // println!("payment_method is : {:?}", payment_method);
+        let payment_method_type = sample.get(&Key("payment_method_type".to_string())).unwrap().to_owned();
 
         for (k, v) in &merchant_config.config  {
-            let val = v.key.get(&Key("payment_method".to_string())).unwrap();
-            match val {
-                Possible::Value(value) => {
-                    if value == payment_method {
-                        // println!("value is : {:?}", value);
-                        suitable_connectors.push(k.clone());
-                    }
-                }
-                Possible::Pattern(_pattern) => {
-                    // if pattern == payment_method {
-                    //     suitable_connectors.push(k.clone());
-                    // }
+            for config in &v.key {
+                if config.payment_method == *payment_method && (config.payment_method_type == *payment_method_type || config.payment_method_type.0 == "*") {
+                    suitable_connectors.push(k.clone());
                 }
             }
-            // println!("Payment Method in first value of merchant_config: key = {:?}, value = {:?}", k, );
         }
         
         suitable_connectors
@@ -248,7 +264,3 @@ impl PaymentRecorderData {
     }
     
 }
-
-
-
-
