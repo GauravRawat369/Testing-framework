@@ -63,23 +63,18 @@
         "key": [
           {
             "payment_method": "card",
-            "payment_method_type": "credit",
-            "sr": 50
-          },
-          {
-            "payment_method": "card",
-            "payment_method_type": "debit",
-            "sr": 50
+            "payment_method_type": "*",
+            "sr": 10
           },
           {
             "payment_method": "bnpl",
             "payment_method_type": "*",
-            "sr": 40
+            "sr": 90
           },
           {
             "payment_method": "wallet",
             "payment_method_type": "*",
-            "sr": 40
+            "sr": 80
           }
         ],
         "psp_time_config": {
@@ -92,17 +87,17 @@
           {
             "payment_method": "card",
             "payment_method_type": "*",
-            "sr": 30
+            "sr": 90
           },
           {
             "payment_method": "bnpl",
             "payment_method_type": "*",
-            "sr": 20
+            "sr": 70
           },
           {
             "payment_method": "wallet",
             "payment_method_type": "*",
-            "sr": 20
+            "sr": 50
           }
         ],
         "psp_time_config": {

@@ -3,19 +3,21 @@ use testing_framework::{types::config::Config, simulate::user::Sampler};
 use testing_framework::types::config::{find_suitable_connectors, Key, PaymentRecorderData, Status, StraightThroughRouting};
 use testing_framework::evaluator::evaluate::Evaluator;
 use testing_framework::recorder::record::Recorder;
+use testing_framework::types::config::Metrics;
+
 
 
 fn generate_user_sample(config: &Config) -> Result<(String, Vec<Key>)> {
     let output = config.user.generate_sample()?;
     let connectors = find_suitable_connectors(&output, &config.merchant);
     let output = serde_json::to_string_pretty(&output)?;
-    println!("Generated user sample: {}", output);
     Ok((output, connectors))
 }
-fn call_script() -> Result<()>{
+
+fn call_script(metrics: &mut Metrics) -> Result<()> {
     let config = Config::load()?;
-    // println!("Loaded config: {:?}", config);
     let (user_sample, connectors) = generate_user_sample(&config)?;
+    println!("User sample: {}", user_sample);
     if connectors.is_empty() {
         println!("No connectors available for this user in merchant config.");
         return Ok(());
@@ -34,22 +36,25 @@ fn call_script() -> Result<()>{
             println!("Transaction succeeded.");
             // Call recorder
             let record_data = PaymentRecorderData::set_values(connector.clone(), Status::Success, Key(user_sample.clone()));
-            record_data.record_transaction()?;
+            record_data.record_transaction(metrics)?;
         },
         Status::Failure => {
             println!("Transaction failed.");
             // Call recorder
             let record_data = PaymentRecorderData::set_values(connector.clone(), Status::Failure, Key(user_sample.clone()));
-            record_data.record_transaction()?;
+            record_data.record_transaction(metrics)?;
         },
     }
 
     Ok(())
 }
+
 fn main() -> Result<()> {
-    
-    for _ in 0..3000 {
-        call_script()?;
+    let mut metrics = Metrics::new();
+    for _ in 0..1500 {
+        call_script(&mut metrics)?;
     }
+    // Use recorder to print metrics
+    testing_framework::recorder::record::print_metrics(&metrics);
     Ok(())
 }

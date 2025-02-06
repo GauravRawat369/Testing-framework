@@ -22,7 +22,7 @@ impl Evaluator for PspSimulationConfig {
         if let Some(config) = self.config.get(&connector.0) {
             for payment_method_config in &config.key {
                 let matches = user_sample.contains(&payment_method_config.payment_method.0)
-                    && user_sample.contains(&payment_method_config.payment_method_type.0);
+                    && (user_sample.contains(&payment_method_config.payment_method_type.0) || payment_method_config.payment_method_type.0 == "*");
 
                 if matches {
                     let success = rng.gen_bool(payment_method_config.sr as f64 / 100.0);

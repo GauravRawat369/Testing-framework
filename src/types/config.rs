@@ -141,7 +141,8 @@ impl PartialEq for Possible {
 }
 
 // Status enum for the transaction result
-#[derive(Debug, Deserialize, Eq, PartialEq, Hash)]
+#[derive(Debug, Deserialize, Eq, PartialEq, Hash,Clone)]
+
 pub enum Status {
     Success,
     Failure,
@@ -263,4 +264,17 @@ impl PaymentRecorderData {
         }
     }
     
+}
+#[derive(Debug)]
+
+pub struct Metrics {
+    pub key: std::collections::HashMap<String, std::collections::HashMap<String, std::collections::HashMap<String, std::collections::HashMap<Status, usize>>>>,
+}
+
+impl Metrics {
+   pub fn new() -> Self {
+        Metrics {
+            key: std::collections::HashMap::new(),
+        }
+    }
 }
