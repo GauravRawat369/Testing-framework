@@ -1,170 +1,149 @@
 {
   "user": {
-    "payment_method": {
-      "card": {
-        "percentage": 50,
-        "next": {
-          "payment_method_type": {
-            "credit": 50,
-            "debit": 50
-          }
-        }
-      },
-      "bnpl": {
-        "percentage": 30,
-        "next": {
-          "payment_method_type": {
-            "debit": 50,
-            "credit": 50
-          }
-        }
-      },
-      "wallet": {
-        "percentage": 20,
-        "next": {
-          "payment_method_type": {
-            "debit": 50,
-            "credit": 50
-          }
-        }
-      }
-    },
-    "amount": {
-      "min": 100,
-      "max": 1000
-    }
+       "payment_methods": {
+           "card": {
+               "percentage": 50,
+               "next": {
+                   "payment_method_type": {
+                       "credit": 50,
+                       "debit": 50
+                   }
+               },
+               "extra_fields": {
+                   "auth_type": "3ds"
+               }
+           },
+           "bnpl": 30,
+           "wallet": 20
+       }
   },
   "psp": {
-    "config": {
-      "stripe": {
-        "key": [
-          {
-            "payment_method": "card",
-            "payment_method_type": "*",
-            "sr": 70
-          },
-          {
-            "payment_method": "bnpl",
-            "payment_method_type": "*",
-            "sr": 60
-          },
-          {
-            "payment_method": "wallet",
-            "payment_method_type": "*",
-            "sr": 60
-          }
-        ],
-        "psp_time_config": {
-          "mean": "500",
-          "stddev": "100"
-        }
-      },
-      "adyen": {
-        "key": [
-          {
-            "payment_method": "card",
-            "payment_method_type": "*",
-            "sr": 10
-          },
-          {
-            "payment_method": "bnpl",
-            "payment_method_type": "*",
-            "sr": 90
-          },
-          {
-            "payment_method": "wallet",
-            "payment_method_type": "*",
-            "sr": 80
-          }
-        ],
-        "psp_time_config": {
-          "mean": "500",
-          "stddev": "100"
-        }
-      },
-      "paypal": {
-        "key": [
-          {
-            "payment_method": "card",
-            "payment_method_type": "*",
-            "sr": 90
-          },
-          {
-            "payment_method": "bnpl",
-            "payment_method_type": "*",
-            "sr": 70
-          },
-          {
-            "payment_method": "wallet",
-            "payment_method_type": "*",
-            "sr": 50
-          }
-        ],
-        "psp_time_config": {
-          "mean": "500",
-          "stddev": "100"
-        }
-      }
-    },
-    "otherwise": "failure"
-  },
-  "merchant": {
-    "config": {
-      "stripe": {
-        "key": [
-          {
-            "payment_method": "card",
-            "payment_method_type": "*"
-          },
-          {
-            "payment_method": "bnpl",
-            "payment_method_type": "*"
-          },
-          {
-            "payment_method": "wallet",
-            "payment_method_type": "*"
-          }
-        ]
-      },
-      "adyen": {
-        "key": [
-          {
-            "payment_method": "card",
-            "payment_method_type": "*"
-          },
-          {
-            "payment_method": "bnpl",
-            "payment_method_type": "*"
-          },
-          {
-            "payment_method": "wallet",
-            "payment_method_type": "*"
-          }
-        ]
-      },
-      "paypal": {
-        "key": [
-          {
-            "payment_method": "card",
-            "payment_method_type": "*"
-          },
-          {
-            "payment_method": "bnpl",
-            "payment_method_type": "*"
-          },
-          {
-            "payment_method": "wallet",
-            "payment_method_type": "*"
-          }
-        ]
-      }
-    },
-    "time_config": "10000"
-  }
+       "psp_variants": {
+           "stripe": {
+               "payment_methods": {
+                   "card": [
+                       {
+                           "payment_method_type": "credit",
+                           "sr": 50
+                       },
+                       {
+                           "payment_method_type": "debit",
+                           "sr": 50
+                       }
+                   ],
+                   "bnpl": {
+                       "sr": 30
+                   },
+                   "wallet": {
+                       "sr": 20
+                   }
+               },
+               "psp_time_config": {
+                   "mean": 500,
+                   "stddev": 100
+               }
+           },
+           "adyen": {
+               "payment_methods": {
+                   "card": [
+                       {
+                           "payment_method_type": "credit",
+                           "sr": 70
+                       },
+                       {
+                           "payment_method_type": "debit",
+                           "sr": 30
+                       }
+                   ],
+                   "bnpl": {
+                       "sr": 20
+                   },
+                   "wallet": {
+                       "sr": 60
+                   }
+               },
+               "psp_time_config": {
+                   "mean": 450,
+                   "stddev": 110
+               }
+           },
+           "paypal": {
+               "payment_methods": {
+                   "card": [
+                       {
+                           "payment_method_type": "credit",
+                           "sr": 60
+                       },
+                       {
+                           "payment_method_type": "debit",
+                           "sr": 40
+                       }
+                   ],
+                   "bnpl": {
+                       "sr": 10
+                   },
+                   "wallet": {
+                       "sr": 30
+                   }
+               },
+               "psp_time_config": {
+                   "mean": 400,
+                   "stddev": 120
+               }
+           }
+       }
+   },
+   "merchant": {
+       "connectors_list": {
+           "stripe": {
+               "supported_payment_methods": {
+                   "card": {
+                       "payment_method_types": [
+                           "credit",
+                           "debit"
+                       ],
+                       "supported_behaviours": {
+                           "amount_less_than": 2000
+                       }
+                   },
+                   "wallet": {},
+                   "bnpl": {}
+               }
+           },
+           "adyen": {
+               "supported_payment_methods": {
+                   "card": {
+                       "payment_method_types": [
+                           "credit",
+                           "debit"
+                       ],
+                       "supported_behaviours": {
+                           "amount_less_than": 1500
+                       }
+                   },
+                   "wallet": {}
+               }
+           },
+           "paypal": {
+               "supported_payment_methods": {
+                   "card": {
+                       "payment_method_types": [
+                           "credit",
+                           "debit"
+                       ],
+                       "supported_behaviours": {
+                           "amount_less_than": 1000
+                       }
+                   },
+                   "bnpl": {}
+               }
+           }
+       },
+       "extra_fields": {
+           "time_config": 10000,
+           "auth_type": "3ds",
+           "ef3": "abc",
+           "ef4": "def"
+       }
+   }
 }
-
-
-
-
-
-

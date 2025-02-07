@@ -1,5 +1,5 @@
 use anyhow::Result;
-use crate::types::config::{Key, Possible, PspSimulationConfig, Status,};
+use crate::types::config::{Key, PspSimulationConfig, Status,};
 use crate::types::config::PaymentRecorderData;
 use rand::Rng;
 
