@@ -55,9 +55,6 @@
                            "sr": 30
                        }
                    ],
-                   "bnpl": {
-                       "sr": 20
-                   },
                    "wallet": {
                        "sr": 60
                    }
@@ -81,9 +78,6 @@
                    ],
                    "bnpl": {
                        "sr": 10
-                   },
-                   "wallet": {
-                       "sr": 30
                    }
                },
                "psp_time_config": {
@@ -107,7 +101,11 @@
                        }
                    },
                    "wallet": {},
-                   "bnpl": {}
+                   "bnpl": {
+                        "supported_behaviours": {
+                            "amount_less_than": 1000
+                        }
+                   }
                }
            },
            "adyen": {

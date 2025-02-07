@@ -187,15 +187,8 @@ impl PspSimulationConfig {
         }
     }
 }
-// impl MerchantConfig {
-//     pub fn get_connector_list(&self) -> Result<Vec<String>> {
-//         let mut connectors = Vec::new();
-//         for (key, _) in self.config.iter() {
-//             connectors.push(key.clone());
-//         }
-//         Ok(connectors)
-//     }
-// }
+
+//merchant structs
 #[derive(Debug, Deserialize, Serialize)]
 pub struct MerchantConfig {
     pub connectors_list: HashMap<Key, ConnectorDetails>,
@@ -213,23 +206,58 @@ pub struct PaymentMethodConfig {
     pub supported_behaviours: Option<HashMap<Key, Value>>
 }
 
-// pub fn find_suitable_connectors (
-//     sample: &HashMap<&Key, &Key>,
-//     merchant_config: &MerchantConfig) -> Vec<Key> {
-//         let mut suitable_connectors = Vec::new();
-//         let payment_method = sample.get(&Key("payment_method".to_string())).unwrap().to_owned();
-//         let payment_method_type = sample.get(&Key("payment_method_type".to_string())).unwrap().to_owned();
-
-//         for (k, v) in &merchant_config.config  {
-//             for config in &v.key {
-//                 if config.payment_method == *payment_method && (config.payment_method_type == *payment_method_type || config.payment_method_type.0 == "*") {
-//                     suitable_connectors.push(k.clone());
-//                 }
-//             }
-//         }
+pub fn find_suitable_connectors (
+    sample: &HashMap<Key, Key>,
+    merchant_config: &MerchantConfig) -> Vec<Key> {
+        let mut suitable_connectors = Vec::new();
         
-//         suitable_connectors
-// }
+        for (connector_key, connector_details) in &merchant_config.connectors_list {
+            let mut is_suitable = false;
+            for(payment_method_key, payment_method_config) in &connector_details.supported_payment_methods {
+                let res = sample.get(&Key("payment_methods".to_string()));
+                match res {
+                    Some(payment_method) => {
+                        if payment_method == payment_method_key {
+                            is_suitable = true;
+                            if sample.get(&Key("payment_method_type".to_string())).is_some() {
+                                let payment_method_type = sample.get(&Key("payment_method_type".to_string())).unwrap();
+                                if let Some(payment_method_types) = payment_method_config.payment_method_types.as_ref() {
+                                    if payment_method_types.contains(&payment_method_type.0) {
+                                        is_suitable = true;
+                                    } else {
+                                        is_suitable = false;
+                                    }
+                                }
+                            }
+                            if payment_method_config.supported_behaviours.is_some() {
+                                let res = payment_method_config.supported_behaviours.as_ref().unwrap().get(&Key("amount_less_than".to_string()));
+                                match res {
+                                    Some(amt) => {
+                                        let amount = sample.get(&Key("amount".to_string())).unwrap();
+                                        if amount.0.parse::<u32>().unwrap() < amt.as_u64().unwrap() as u32 {
+                                            is_suitable = true;
+                                        } else {
+                                            is_suitable = false;
+                                        }
+                                    }
+                                    None => {
+                                        continue;
+                                    }
+                                }
+                            }
+                            if is_suitable {
+                                suitable_connectors.push(connector_key.clone());
+                            }
+                        }
+                    }
+                    None => {
+                        continue;
+                    }
+                }
+            }
+        }
+        suitable_connectors
+}
 
 pub struct StraightThroughRouting{
     pub connectors: Vec<Key>
