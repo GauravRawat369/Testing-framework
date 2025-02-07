@@ -38,7 +38,7 @@ impl Recorder for PaymentRecorderData {
         ];
 
         let mut payment_method_str = String::new();
-        if let Some(payment_method) = payment_data.get("payment_method") {
+        if let Some(payment_method) = payment_data.get("payment_methods") {
             payment_method_str = payment_method.to_string();
             record.push(&payment_method_str);
         }

@@ -51,7 +51,7 @@ fn call_script(metrics: &mut Metrics) -> Result<()> {
 
 fn main() -> Result<()> {
     let mut metrics = Metrics::new();
-    for _ in 0..1500 {
+    for _ in 0..1 {
         call_script(&mut metrics)?;
     }
     // Use recorder to print metrics
