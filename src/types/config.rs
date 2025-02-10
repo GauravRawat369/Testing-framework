@@ -5,6 +5,7 @@ use crate::simulate::user::Sampler;
 use std::path::Path;
 use anyhow::{ensure, Context, Result};
 use rand::Rng;
+use serde_json::Value;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Config {
@@ -19,7 +20,6 @@ impl Config {
         if default_path.exists() {
             let output = Self::load_from_path(default_path)?;
             output.user.validate()?;
-            // println!("psp config {:?}: ", output.psp);
             return Ok(output);
         }
 
@@ -39,48 +39,82 @@ impl Config {
 pub struct Key(pub String);
 
 #[derive(Debug, Deserialize, Serialize)]
+pub struct UserSimulationConfig {
+    #[serde(default = "default_amount")]
+    pub amount: Option<AmountRange>,
+    pub currency: Option<String>,
+    #[serde(flatten)]
+    pub payment_methods: SimulationConfig,
+    pub extra_fields: Option<HashMap<Key, Value>>
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct AmountRange { pub min: u32, pub max: u32}
+
+fn default_amount() -> Option<AmountRange> {
+    Some(AmountRange { min: 0, max: 2000 })
+}
+
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(transparent)]
-pub struct Parameters(HashMap<Key, ParameterConfig>);
+pub struct SimulationConfig(HashMap<Key, PaymentMethods>);
+
+impl Sampler for UserSimulationConfig {
+    fn generate_sample(&self) -> Result<HashMap<Key, Key>> {
+        let amt = Self::generate_random_amount(&self.amount);
+        let binding = "USD".to_string();
+        let currency = self.currency.as_ref().unwrap_or(&binding);
+        let mut sample = HashMap::new();
+        sample.insert(Key("amount".to_string()), Key(amt.to_string()));
+        sample.insert(Key("currency".to_string()), Key(currency.clone()));
+        let res = Self::list_payment_methods(&self.payment_methods);
+        res.map(|payment_methods| {
+            sample.extend(payment_methods.into_iter().map(|(k, v)| (k.to_owned(), v.to_owned())));
+            sample
+        })
+    }
+}
+
+impl Deref for SimulationConfig {
+    type Target = HashMap<Key, PaymentMethods>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(transparent)]
+pub struct PaymentMethods(HashMap<Key, PaymentMethodDetails>);
+
+impl Deref for PaymentMethods {
+    type Target = HashMap<Key, PaymentMethodDetails>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(untagged)]
-pub enum ParameterConfig {
+pub enum PaymentMethodDetails {
     Percentage(u8),
     Composite {
         percentage: u8,
         next: SimulationConfig,
-    },
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-#[serde(transparent)]
-pub struct SimulationConfig(HashMap<Key, Parameters>);
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct UserSimulationConfig {
-    #[serde(flatten)]
-    pub parameters: SimulationConfig,
-    pub amount: AmountRange,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct AmountRange { min: u64, max: u64}
-
-impl Sampler for UserSimulationConfig {
-    fn generate_sample(&self) -> Result<HashMap<&Key, &Key>> {
-        Self::list_parameters(&self.parameters)
+        extra_fields: Option<HashMap<Key, Value>>
     }
-
 }
 
 
-impl Parameters {
+impl PaymentMethods {
     pub fn validate(&self) -> Result<()> {
         let mut total = 0;
         for (_key, value) in self.0.iter() {
             match value {
-                ParameterConfig::Percentage(value) => total += value,
-                ParameterConfig::Composite { percentage, next } => {
+                &PaymentMethodDetails::Percentage(value) => total += value,
+                &PaymentMethodDetails::Composite { percentage, ref next , extra_fields: _} => {
                     total += percentage;
                     next.validate()?;
                 }
@@ -104,139 +138,124 @@ impl SimulationConfig {
 
 impl UserSimulationConfig {
     pub fn validate(&self) -> Result<()> {
-        self.parameters.validate()
+        self.payment_methods.validate()
     }
 }
 
-impl Deref for SimulationConfig {
-    type Target = HashMap<Key, Parameters>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl Deref for Parameters {
-    type Target = HashMap<Key, ParameterConfig>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-#[derive(Debug, Eq, Deserialize, Serialize)]
-#[serde(untagged)] 
-pub enum Possible {
-    Value(Key),
-    Any,
-}
-impl PartialEq for Possible {
-    fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (Possible::Any, _) => true,
-            (_, Possible::Any) => true,
-            (Possible::Value(a), Possible::Value(b)) => a == b,
-        }
-    }
-}
-
-// Status enum for the transaction result
-#[derive(Debug, Deserialize, Eq, PartialEq, Hash,Clone)]
-
-pub enum Status {
-    Success,
-    Failure,
-}
-
-// Configuration for a single connector
+//psp structs
 #[derive(Debug, Deserialize, Serialize)]
-pub struct ConnectorConfig {
-    pub key: Vec<PaymentMethodTypeConfig>,
-    pub psp_time_config: HashMap<Key, Key>,
+pub struct PspSimulationConfig {
+    pub psp_variants: HashMap<Key, PspDetails>,
+    pub otherwise: Option<String>
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct PaymentMethodTypeConfig {
-    pub payment_method: Key,
-    pub payment_method_type: Key,
-    pub sr: u8, // Success rate
+pub struct PspDetails {
+    pub payment_methods: HashMap<Key, PaymentMethodTypes>,
+    pub psp_time_config: Option<PspTimeConfig>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]    
-pub struct MerchantMethodTypeConfig {
-    pub payment_method: Key,
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum PaymentMethodTypes {
+    PaymentTypes(Vec<PaymentTypeDetails>),
+    Simple { sr: u32 },
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct PaymentTypeDetails {
     pub payment_method_type: Key,
-    
+    pub sr: u32,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct PspTimeConfig {
-    pub key: HashMap<Key, Key>,
+    pub mean: u32,
+    pub stddev: u32,
 }
 
-// Main PSP configuration loaded from JSON
-#[derive(Debug, Deserialize, Serialize)]
-pub struct PspSimulationConfig {
-    pub config: HashMap<String, ConnectorConfig>,
-    pub otherwise: String, // Default result as a string
-}
-
-// Convert String into Status for easy mapping
 impl PspSimulationConfig {
     pub fn default_status(&self) -> Status {
-        match self.otherwise.as_str() {
-            "success" => Status::Success,
-            _ => Status::Failure,
+        match self.otherwise {
+            Some(ref status) => {
+                match status.as_str() {
+                    "success" => Status::Success,
+                    _ => Status::Failure,
+                }
+            },
+            None => Status::Failure
         }
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
-pub struct PspConfig {
-    pub key: Vec<MerchantMethodTypeConfig>
-}
+//merchant structs
 #[derive(Debug, Deserialize, Serialize)]
 pub struct MerchantConfig {
-    pub config: HashMap<Key, PspConfig>,
-    pub time_config: Key,
-} 
+    pub connectors_list: HashMap<Key, ConnectorDetails>,
+    pub extra_fields: Option<HashMap<Key, Value>>
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct ConnectorDetails {
+    pub supported_payment_methods: HashMap<Key, PaymentMethodConfig>
+}
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct PaymentMethodConfig {
-    pub key: Vec<PaymentMethodTypeConfig>,
+    pub payment_method_types: Option<Vec<String>>,
+    pub supported_behaviours: Option<HashMap<Key, Value>>
 }
 
-// impl MerchantConfig {
-//     pub fn get_connector_list(&self) -> Result<Vec<String>> {
-//         let mut connectors = Vec::new();
-//         for (key, _) in self.config.iter() {
-//             connectors.push(key.clone());
-//         }
-//         Ok(connectors)
-//     }
-// }
-// #[derive(Debug, Deserialize, Serialize)]
-// pub struct PaymentMethodKey {
-//     pub payment_method: String,
-//     pub payment_method_type: String, 
-//     pub amount_less_than: Option<u64>,
-// }
-
 pub fn find_suitable_connectors (
-    sample: &HashMap<&Key, &Key>,
+    sample: &HashMap<Key, Key>,
     merchant_config: &MerchantConfig) -> Vec<Key> {
         let mut suitable_connectors = Vec::new();
-        let payment_method = sample.get(&Key("payment_method".to_string())).unwrap().to_owned();
-        let payment_method_type = sample.get(&Key("payment_method_type".to_string())).unwrap().to_owned();
-
-        for (k, v) in &merchant_config.config  {
-            for config in &v.key {
-                if config.payment_method == *payment_method && (config.payment_method_type == *payment_method_type || config.payment_method_type.0 == "*") {
-                    suitable_connectors.push(k.clone());
+        
+        for (connector_key, connector_details) in &merchant_config.connectors_list {
+            let mut is_suitable = false;
+            for(payment_method_key, payment_method_config) in &connector_details.supported_payment_methods {
+                let res = sample.get(&Key("payment_methods".to_string()));
+                match res {
+                    Some(payment_method) => {
+                        if payment_method == payment_method_key {
+                            is_suitable = true;
+                            if sample.get(&Key("payment_method_type".to_string())).is_some() {
+                                let payment_method_type = sample.get(&Key("payment_method_type".to_string())).unwrap();
+                                if let Some(payment_method_types) = payment_method_config.payment_method_types.as_ref() {
+                                    if payment_method_types.contains(&payment_method_type.0) {
+                                        is_suitable = true;
+                                    } else {
+                                        is_suitable = false;
+                                    }
+                                }
+                            }
+                            if payment_method_config.supported_behaviours.is_some() {
+                                let res = payment_method_config.supported_behaviours.as_ref().unwrap().get(&Key("amount_less_than".to_string()));
+                                match res {
+                                    Some(amt) => {
+                                        let amount = sample.get(&Key("amount".to_string())).unwrap();
+                                        if amount.0.parse::<u32>().unwrap() < amt.as_u64().unwrap() as u32 {
+                                            is_suitable = true;
+                                        } else {
+                                            is_suitable = false;
+                                        }
+                                    }
+                                    None => {
+                                        continue;
+                                    }
+                                }
+                            }
+                            if is_suitable {
+                                suitable_connectors.push(connector_key.clone());
+                            }
+                        }
+                    }
+                    None => {
+                        continue;
+                    }
                 }
             }
         }
-        
         suitable_connectors
 }
 
@@ -250,6 +269,13 @@ impl StraightThroughRouting{
     }
     
 }
+
+#[derive(Debug, Deserialize, Eq, PartialEq, Hash, Clone)]
+pub enum Status {
+    Success,
+    Failure
+}
+
 pub struct PaymentRecorderData{
     pub connector: Key,
     pub verdict: Status,

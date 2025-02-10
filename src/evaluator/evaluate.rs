@@ -1,5 +1,5 @@
 use anyhow::Result;
-use crate::types::config::{Key, Possible, PspSimulationConfig, Status,};
+use crate::types::config::{Key, PspSimulationConfig, Status,};
 use crate::types::config::PaymentRecorderData;
 use rand::Rng;
 
@@ -19,16 +19,30 @@ impl Evaluator for PspSimulationConfig {
     ) -> Result<Status> {
         let mut rng = rand::thread_rng();
 
-        if let Some(config) = self.config.get(&connector.0) {
-            for payment_method_config in &config.key {
-                let matches = user_sample.contains(&payment_method_config.payment_method.0)
-                    && (user_sample.contains(&payment_method_config.payment_method_type.0) || payment_method_config.payment_method_type.0 == "*");
-
-                if matches {
-                    let success = rng.gen_bool(payment_method_config.sr as f64 / 100.0);
-                    return Ok(if success { Status::Success } else { Status::Failure });
+        if let Some(config) = self.psp_variants.get(&Key(connector.0.clone())) {
+            // Iterate over each payment method and handle both variants
+            for (pm_key, pm_value) in &config.payment_methods {
+                match pm_value {
+                    crate::types::config::PaymentMethodTypes::PaymentTypes(details) => {
+                        for detail in details {
+                            if user_sample.contains(&pm_key.0) &&
+                               (user_sample.contains(&detail.payment_method_type.0) || detail.payment_method_type.0 == "*")
+                            {
+                                let success = rng.gen_bool(detail.sr as f64 / 100.0);
+                                return Ok(if success { Status::Success } else { Status::Failure });
+                            }
+                        }
+                    },
+                    crate::types::config::PaymentMethodTypes::Simple { sr } => {
+                        if user_sample.contains(&pm_key.0) {
+                            let success = rng.gen_bool(*sr as f64 / 100.0);
+                            return Ok(if success { Status::Success } else { Status::Failure });
+                        }
+                    }
                 }
             }
+            // If no matching payment method is found, return default status
+            return Ok(self.default_status());
         }
         Ok(self.default_status())
     }
