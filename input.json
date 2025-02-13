@@ -2,7 +2,7 @@
   "user": {
        "payment_methods": {
            "card": {
-               "percentage": 80,
+               "percentage": 100,
                "next": {
                    "payment_method_type": {
                        "credit": 50,
@@ -13,8 +13,8 @@
                    "auth_type": "3ds"
                }
            },
-           "bnpl": 10,
-           "wallet": 10
+           "bnpl": 0,
+           "wallet": 0
        }
   },
   "psp": {
@@ -24,15 +24,9 @@
                    "card": [
                        {
                            "payment_method_type": "*",
-                           "sr": 100
+                           "sr": 90
                        }
-                   ],
-                   "bnpl": {
-                       "sr": 30
-                   },
-                   "wallet": {
-                       "sr": 20
-                   }
+                   ]
                },
                "psp_time_config": {
                    "mean": 500,
@@ -44,11 +38,11 @@
                    "card": [
                        {
                            "payment_method_type": "*",
-                           "sr": 70
+                           "sr": 40
                        }
                    ],
                    "wallet": {
-                       "sr": 60
+                        "sr": 10
                    }
                },
                "psp_time_config": {
@@ -61,7 +55,7 @@
                    "card": [
                        {
                            "payment_method_type": "*",
-                           "sr": 60
+                           "sr": 50
                        }
                    ],
                    "bnpl": {
@@ -83,16 +77,7 @@
                        "payment_method_types": [
                            "credit",
                            "debit"
-                       ],
-                       "supported_behaviours": {
-                           "amount_less_than": 2000
-                       }
-                   },
-                   "wallet": {},
-                   "bnpl": {
-                        "supported_behaviours": {
-                            "amount_less_than": 1000
-                        }
+                       ]
                    }
                }
            },
@@ -102,10 +87,7 @@
                        "payment_method_types": [
                            "credit",
                            "debit"
-                       ],
-                       "supported_behaviours": {
-                           "amount_less_than": 1500
-                       }
+                       ]
                    },
                    "wallet": {}
                }
@@ -116,10 +98,7 @@
                        "payment_method_types": [
                            "credit",
                            "debit"
-                       ],
-                       "supported_behaviours": {
-                           "amount_less_than": 1000
-                       }
+                       ]
                    },
                    "bnpl": {}
                }
