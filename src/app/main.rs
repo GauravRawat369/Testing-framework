@@ -10,15 +10,18 @@ use testing_framework::types::config::Metrics;
 use testing_framework::types::config::{PaymentConnector, RoutingAlgorithm};
 use std::collections::HashMap;
 
-
-
 fn generate_user_sample(config: &Config) -> Result<(String, Vec<Key>)> {
     let output = config.user.generate_sample()?;
     let connectors = find_suitable_connectors(&output, &config.merchant);
     let output = serde_json::to_string_pretty(&output)?;
     Ok((output, connectors))
 }
-fn call_script_for_mab(metrics: &mut Metrics, algorithm: &mut Box<dyn RoutingAlgorithm>, map_connector: &mut HashMap<String, bool>, connectors: &mut Vec<PaymentConnector>
+
+fn call_script_for_mab(
+    metrics: &mut Metrics,
+    algorithm: &mut Box<dyn RoutingAlgorithm>,
+    map_connector: &mut HashMap<String, Vec<String>>,
+    connectors: &mut Vec<PaymentConnector>
 ) -> Result<()> {
     // Load the configuration
     let config = Config::load()?;
@@ -32,26 +35,44 @@ fn call_script_for_mab(metrics: &mut Metrics, algorithm: &mut Box<dyn RoutingAlg
     for connector in &eligible_connector {
         println!("{}", connector.0);
     }
-    //check if the eligible_connector is available in the PaymentConnector if not create one
+
+    // Extract payment_method and payment_method_type from user_sample
+    let user_sample_map: HashMap<String, String> = serde_json::from_str(&user_sample)?;
+    let payment_method = user_sample_map.get("payment_methods").unwrap_or(&"".to_string()).clone();
+    let mut payment_method_type = user_sample_map.get("payment_method_type").unwrap_or(&"".to_string()).clone();
+    if payment_method_type.is_empty() {
+        payment_method_type = "N/A".to_string();
+    }
+
+    // println!("payment_method : {} and payment_method_type : {}", payment_method, payment_method_type);
+
+    // Check if the eligible_connector is available in the PaymentConnector, if not create one
     for connector in &eligible_connector {
         if !map_connector.contains_key(&connector.0) {
-            map_connector.insert(connector.0.clone(), true);
-            connectors.push(PaymentConnector::new(connector.0.clone(), 5));
+            map_connector.insert(connector.0.clone(), vec![payment_method.clone(), payment_method_type.clone()]);
+            connectors.push(PaymentConnector::new(connector.0.clone(), payment_method.clone(), payment_method_type.clone(), 5));
+        } else {
+            // Check if present connector has the same payment_method and payment_method_type
+            let existing_values = map_connector.get(&connector.0).unwrap();
+            if payment_method != existing_values[0] || payment_method_type != existing_values[1] {
+                map_connector.insert(connector.0.clone(), vec![payment_method.clone(), payment_method_type.clone()]);
+                connectors.push(PaymentConnector::new(connector.0.clone(), payment_method.clone(), payment_method_type.clone(), 5));
+            };
         }
     }
 
-   //plug algo
-   let connector_index = algorithm.select_connector(connectors);
-   let connector_name = connectors[connector_index].name.clone();
+    // Plug algo
+    let connector_index = algorithm.select_connector(connectors,payment_method,payment_method_type);
+    let connector_name = connectors[connector_index].name.clone();
     let connector = Key(connector_name);
-
-    
-
+    if !eligible_connector.contains(&connector) {
+        println!("*************************************************************** wrong")
+    }
     println!("Using connector: {:?}", connector.0);
     match config.psp.call_evaluator(&connector, &user_sample)? {
         Status::Success => {
             println!("Transaction succeeded.");
-            //give feadback to the algorithm
+            // Give feedback to the algorithm
             algorithm.update_connector(connectors, connector_index, true);
             // Call recorder
             let record_data = PaymentRecorderData::set_values(connector.clone(), Status::Success, Key(user_sample.clone()));
@@ -59,7 +80,7 @@ fn call_script_for_mab(metrics: &mut Metrics, algorithm: &mut Box<dyn RoutingAlg
         },
         Status::Failure => {
             println!("Transaction failed.");
-            //give feadback to the algorithm
+            // Give feedback to the algorithm
             algorithm.update_connector(connectors, connector_index, false);
             // Call recorder
             let record_data = PaymentRecorderData::set_values(connector.clone(), Status::Failure, Key(user_sample.clone()));
@@ -69,6 +90,7 @@ fn call_script_for_mab(metrics: &mut Metrics, algorithm: &mut Box<dyn RoutingAlg
 
     Ok(())
 }
+
 fn call_script_for_straight_through(metrics: &mut Metrics) -> Result<()> {
     // Load the configuration
     let config = Config::load()?;
@@ -82,23 +104,20 @@ fn call_script_for_straight_through(metrics: &mut Metrics) -> Result<()> {
     for connector in &connectors {
         println!("{}", connector.0);
     }
-   //plug algo
-    let routing = StraightThroughRouting {connectors};
+    // Plug algo
+    let routing = StraightThroughRouting { connectors };
     let connector = routing.get_connector(); // Get the connector name as a string
-
 
     println!("Using connector: {:?}", connector.0);
     match config.psp.call_evaluator(&connector, &user_sample)? {
         Status::Success => {
             println!("Transaction succeeded.");
-            //give feadback to the algorithm
             // Call recorder
             let record_data = PaymentRecorderData::set_values(connector.clone(), Status::Success, Key(user_sample.clone()));
             record_data.record_transaction(metrics)?;
         },
         Status::Failure => {
             println!("Transaction failed.");
-            //give feadback to the algorithm
             // Call recorder
             let record_data = PaymentRecorderData::set_values(connector.clone(), Status::Failure, Key(user_sample.clone()));
             record_data.record_transaction(metrics)?;
@@ -119,7 +138,7 @@ fn main() {
     // Choose algorithm based on user input
     let algorithm_name = &args[1];
     let mut algorithm: Box<dyn RoutingAlgorithm> = match algorithm_name.as_str() {
-        "thompson" => Box::new(ThompsonSampling::new(0.5)), // Discount factor = 0.95
+        "thompson" => Box::new(ThompsonSampling::new(0.95)), // Discount factor = 0.95
         "ucb" => Box::new(SlidingWindowUCB::new(5, 2.0)),     // Window size = 5, exploration factor = 2.0
         _ => {
             eprintln!("Invalid algorithm. Available options: thompson, ucb");
@@ -129,10 +148,10 @@ fn main() {
 
     let mut metrics = Metrics::new();
     let mut connectors: Vec<PaymentConnector> = vec![];
-    let mut map_connector :HashMap<String, bool>  = HashMap::new();
-    for _ in 0..1000 {
-        // call_script_for_straight_through(&mut metrics);
-        call_script_for_mab(&mut metrics,&mut algorithm,&mut map_connector,&mut connectors);
+    let mut map_connector: HashMap<String, Vec<String>> = HashMap::new();
+
+    for _ in 0..1500 {
+        call_script_for_mab(&mut metrics, &mut algorithm, &mut map_connector, &mut connectors).unwrap();
     }
     // Use recorder to print metrics
     testing_framework::recorder::record::print_metrics(&metrics);

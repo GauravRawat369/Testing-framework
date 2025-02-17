@@ -2,7 +2,7 @@
   "user": {
        "payment_methods": {
            "card": {
-               "percentage": 100,
+               "percentage": 90,
                "next": {
                    "payment_method_type": {
                        "credit": 50,
@@ -13,8 +13,8 @@
                    "auth_type": "3ds"
                }
            },
-           "bnpl": 0,
-           "wallet": 0
+           "bnpl": 5,
+           "wallet": 5
        }
   },
   "psp": {
@@ -24,7 +24,7 @@
                    "card": [
                        {
                            "payment_method_type": "*",
-                           "sr": 90
+                           "sr": 100
                        }
                    ]
                },
@@ -42,7 +42,7 @@
                        }
                    ],
                    "wallet": {
-                        "sr": 10
+                        "sr": 30
                    }
                },
                "psp_time_config": {
@@ -55,11 +55,11 @@
                    "card": [
                        {
                            "payment_method_type": "*",
-                           "sr": 50
+                           "sr": 40
                        }
                    ],
                    "bnpl": {
-                       "sr": 10
+                       "sr": 30
                    }
                },
                "psp_time_config": {

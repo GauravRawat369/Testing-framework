@@ -17,12 +17,15 @@ impl ThompsonSampling {
 
 impl RoutingAlgorithm for ThompsonSampling {
     /// Select a connector using Thompson Sampling.
-    fn select_connector(&self, connectors: &mut Vec<PaymentConnector>) -> usize {
+    fn select_connector(&self, connectors: &mut Vec<PaymentConnector>,payment_method: String,payment_method_type: String) -> usize {
         let mut rng = thread_rng();
         let mut best_connector_index = 0;
         let mut best_sampled_rate = 0.0;
 
         for (index, connector) in connectors.iter().enumerate() {
+            if connector.payment_method != payment_method || connector.payment_method_type != payment_method_type {
+                continue;
+            }
             let beta_dist = Beta::new(connector.alpha, connector.beta).unwrap();
             let sampled_rate = beta_dist.sample(&mut rng);
 

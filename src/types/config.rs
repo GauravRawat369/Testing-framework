@@ -315,6 +315,8 @@ impl Metrics {
 #[derive(Debug, Clone)]
 pub struct PaymentConnector {
     pub name: String,
+    pub payment_method : String,
+    pub payment_method_type : String,
     pub alpha: f64, // Successes (for Thompson Sampling)
     pub beta: f64,  // Failures (for Thompson Sampling)
     pub successes: usize, // Successes (for Sliding Window UCB)
@@ -324,9 +326,11 @@ pub struct PaymentConnector {
 
 impl PaymentConnector {
     /// Create a new payment connector.
-    pub fn new(name: String, window_size: usize) -> Self {
+    pub fn new(name: String,payment_method : String,payment_method_type:String, window_size: usize) -> Self {
         PaymentConnector {
             name,
+            payment_method,
+            payment_method_type,
             alpha: 1.0, // Initialize with 1 to avoid division by zero
             beta: 1.0,
             successes: 0,
@@ -338,6 +342,6 @@ impl PaymentConnector {
 
 /// Trait for payment routing algorithms.
 pub trait RoutingAlgorithm {
-    fn select_connector(&self, connectors: &mut Vec<PaymentConnector>) -> usize;
+    fn select_connector(&self, connectors: &mut Vec<PaymentConnector>,payment_method : String,payment_method_type : String) -> usize;
     fn update_connector(&mut self, connectors: &mut Vec<PaymentConnector>, connector_index: usize, success: bool);
 }

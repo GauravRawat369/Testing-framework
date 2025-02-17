@@ -19,12 +19,15 @@ impl SlidingWindowUCB {
 
 impl RoutingAlgorithm for SlidingWindowUCB {
     /// Select a connector using UCB.
-    fn select_connector(&self, connectors: &mut Vec<PaymentConnector>) -> usize {
+    fn select_connector(&self, connectors: &mut Vec<PaymentConnector>,payment_method: String,payment_method_type: String) -> usize {
         let total_attempts: usize = connectors.iter().map(|c| c.attempts).sum();
         let mut best_connector_index = 0;
         let mut best_ucb_score = 0.0;
 
         for (index, connector) in connectors.iter().enumerate() {
+            if connector.payment_method != payment_method || connector.payment_method_type != payment_method_type {
+                continue;
+            }
             if connector.attempts == 0 {
                 return index; // Explore untried connectors
             }
