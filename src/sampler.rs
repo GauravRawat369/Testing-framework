@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use crate::types::config::{AmountRange, Key, PaymentMethods, SimulationConfig};
+use crate::types::{AmountRange, Key, PaymentMethods, SimulationConfig};
 use anyhow::{anyhow, Result};
 use rand::Rng;
 
@@ -28,7 +28,7 @@ pub trait Sampler {
                 acc
             } else {
                 match info {
-                    crate::types::config::PaymentMethodDetails::Percentage(val) => {
+                    crate::types::PaymentMethodDetails::Percentage(val) => {
                         if number < *val {
                             Some((key, None))
                         } else {
@@ -36,7 +36,7 @@ pub trait Sampler {
                             None
                         }
                     }
-                    crate::types::config::PaymentMethodDetails::Composite { percentage, next, extra_fields: _ } => {
+                    crate::types::PaymentMethodDetails::Composite { percentage, next, extra_fields: _ } => {
                         if number < *percentage {
                             Some((key, Some(next)))
                         } else {

@@ -1,5 +1,6 @@
 pub mod evaluator;
-pub mod simulate;
+pub mod sampler;
 pub mod types;
 pub mod recorder;
+pub mod grpc_clients;
 
