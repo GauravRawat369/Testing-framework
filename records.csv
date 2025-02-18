@@ -1,1 +1,13 @@
 stripe,Success,card,debit
+stripe,Success,card,credit
+stripe,Success,card,debit
+adyen,Failure,card,debit
+stripe,Success,card,credit
+stripe,Success,card,debit
+paypal,Success,card,debit
+adyen,Success,card,debit
+stripe,Success,card,credit
+stripe,Success,card,debit
+paypal,Success,card,debit
+stripe,Success,card,credit
+stripe,Success,card,credit

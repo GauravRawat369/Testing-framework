@@ -1,6 +1,5 @@
 use error_stack::ResultExt;
-use hyper::Response;
-use success_rate::{success_rate_calculator_client::{self, SuccessRateCalculatorClient}, CalSuccessRateConfig, CalSuccessRateRequest, CalSuccessRateResponse, SuccessRateSpecificityLevel as ProtoSpecificityLevel, UpdateSuccessRateWindowConfig, UpdateSuccessRateWindowRequest, UpdateSuccessRateWindowResponse};
+use success_rate::{success_rate_calculator_client::SuccessRateCalculatorClient, CalSuccessRateConfig, CalSuccessRateRequest, CalSuccessRateResponse, SuccessRateSpecificityLevel as ProtoSpecificityLevel};
 use super::{create_grpc_request, health_check_client::{Client, CustomResult}};
 use crate::types::Key;
 
@@ -53,7 +52,7 @@ pub struct SuccessBasedRoutingConfig {
     #[serde(default)]
     pub specificity_level: SuccessRateSpecificityLevel,
 }
-#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, strum::Display)]
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
 pub enum DynamicRoutingConfigParams {
     PaymentMethod,
     PaymentMethodType,
@@ -64,7 +63,9 @@ pub enum DynamicRoutingConfigParams {
     CardBin,
 }
 
-pub trait SuccesBasedDynamicRouting: dyn_clone::DynClone + Send + Sync {
+
+#[async_trait::async_trait]
+pub trait SuccessBasedDynamicRouting: dyn_clone::DynClone + Send + Sync {
     async fn calculate_success_rate(
         &self,
         id: String,
@@ -84,7 +85,8 @@ pub trait SuccesBasedDynamicRouting: dyn_clone::DynClone + Send + Sync {
     // ) -> DynamicRoutingResult<UpdateSuccessRateWindowResponse>;
 }
 
-impl SuccesBasedDynamicRouting for SuccessRateCalculatorClient<Client> {
+#[async_trait::async_trait]
+impl SuccessBasedDynamicRouting for SuccessRateCalculatorClient<Client> {
     async fn calculate_success_rate(
         &self,
         id: String,
