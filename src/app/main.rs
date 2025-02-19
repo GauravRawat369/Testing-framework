@@ -227,5 +227,13 @@ async fn main() -> Result<()> {
     }
     // Use recorder to print metrics
     testing_framework::recorder::print_metrics(&metrics);
+
+    let headers = GrpcHeaders {
+        tenant_id: "tenant_id".to_string(),
+        request_id: Some("request_id".to_string()),
+    };
+
+    let success_rate_client = dynamic_routing_connection.success_rate_client.unwrap();
+    success_rate_client.invalidate_redis_keys("id".to_string(), headers);
     Ok(())
 }

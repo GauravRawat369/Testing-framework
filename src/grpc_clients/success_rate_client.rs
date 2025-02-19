@@ -1,5 +1,5 @@
 use error_stack::ResultExt;
-use success_rate::{success_rate_calculator_client::SuccessRateCalculatorClient, CalSuccessRateConfig, CalSuccessRateRequest, CalSuccessRateResponse, LabelWithStatus, SuccessRateSpecificityLevel as ProtoSpecificityLevel, UpdateSuccessRateWindowConfig, UpdateSuccessRateWindowRequest, UpdateSuccessRateWindowResponse};
+use success_rate::{success_rate_calculator_client::SuccessRateCalculatorClient, CalSuccessRateConfig, CalSuccessRateRequest, CalSuccessRateResponse, InvalidateWindowsRequest, InvalidateWindowsResponse, LabelWithStatus, SuccessRateSpecificityLevel as ProtoSpecificityLevel, UpdateSuccessRateWindowConfig, UpdateSuccessRateWindowRequest, UpdateSuccessRateWindowResponse};
 use super::{create_grpc_request, health_check_client::{Client, CustomResult}};
 use crate::types::Key;
 
@@ -83,6 +83,12 @@ pub trait SuccessBasedDynamicRouting: dyn_clone::DynClone + Send + Sync {
         connector_list: Vec<LabelWithStatus>,
         headers: GrpcHeaders,
     ) -> DynamicRoutingResult<UpdateSuccessRateWindowResponse>;
+
+    async fn invalidate_redis_keys(
+        &self,
+        id: String,
+        headers: GrpcHeaders,
+    ) -> DynamicRoutingResult<InvalidateWindowsResponse>;
 }
 
 #[async_trait::async_trait]
@@ -155,6 +161,25 @@ impl SuccessBasedDynamicRouting for SuccessRateCalculatorClient<Client> {
             .await
             .change_context(DynamicRoutingError::SuccessRateBasedRoutingFailure(
                 "Error while updating success rate".to_string(),
+            ))?
+            .into_inner();
+
+        Ok(response)
+    }
+
+    async fn invalidate_redis_keys(
+        &self,
+        id: String,
+        headers: GrpcHeaders,
+    ) -> DynamicRoutingResult<InvalidateWindowsResponse> {
+        let request = create_grpc_request(InvalidateWindowsRequest { id }, headers);
+
+        let response = self
+            .clone()
+            .invalidate_windows(request)
+            .await
+            .change_context(DynamicRoutingError::SuccessRateBasedRoutingFailure(
+                "Error while invalidating redis keys".to_string(),
             ))?
             .into_inner();
 
