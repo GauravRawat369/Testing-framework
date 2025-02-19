@@ -1,11 +1,11 @@
 use anyhow::Result;
-use crate::types::config::{Key, PspSimulationConfig, Status,};
-use crate::types::config::PaymentRecorderData;
+use crate::config::{Key, PspSimulationConfig, Status,};
+use crate::config::PaymentRecorderData;
 use rand::Rng;
 
 pub trait Evaluator {
     fn call_evaluator(
-        &self,
+        &self,              
         connector: &Key,
         user_sample: &str,
     ) -> Result<Status>;
@@ -23,7 +23,7 @@ impl Evaluator for PspSimulationConfig {
             // Iterate over each payment method and handle both variants
             for (pm_key, pm_value) in &config.payment_methods {
                 match pm_value {
-                    crate::types::config::PaymentMethodTypes::PaymentTypes(details) => {
+                    crate::config::PaymentMethodTypes::PaymentTypes(details) => {
                         for detail in details {
                             if user_sample.contains(&pm_key.0) &&
                                (user_sample.contains(&detail.payment_method_type.0) || detail.payment_method_type.0 == "*")
@@ -33,7 +33,7 @@ impl Evaluator for PspSimulationConfig {
                             }
                         }
                     },
-                    crate::types::config::PaymentMethodTypes::Simple { sr } => {
+                    crate::config::PaymentMethodTypes::Simple { sr } => {
                         if user_sample.contains(&pm_key.0) {
                             let success = rng.gen_bool(*sr as f64 / 100.0);
                             return Ok(if success { Status::Success } else { Status::Failure });

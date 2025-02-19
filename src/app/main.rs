@@ -1,9 +1,9 @@
 use anyhow::Result;
-use testing_framework::{types::config::Config, simulate::user::Sampler};
-use testing_framework::types::config::{find_suitable_connectors, Key, PaymentRecorderData, Status, StraightThroughRouting};
-use testing_framework::evaluator::evaluate::Evaluator;
-use testing_framework::recorder::record::Recorder;
-use testing_framework::types::config::Metrics;
+use testing_framework::{config::Config, user::Sampler};
+use testing_framework::config::{find_suitable_connectors, Key, PaymentRecorderData, Status, StraightThroughRouting};
+use testing_framework::evaluate::Evaluator;
+use testing_framework::record::Recorder;
+use testing_framework::config::Metrics;
 
 
 
@@ -55,6 +55,6 @@ fn main() -> Result<()> {
         call_script(&mut metrics)?;
     }
     // Use recorder to print metrics
-    testing_framework::recorder::record::print_metrics(&metrics);
+    testing_framework::record::print_metrics(&metrics);
     Ok(())
 }

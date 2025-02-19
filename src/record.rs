@@ -1,11 +1,11 @@
-use crate::types::config::PaymentRecorderData;
-use crate::types::config::Key;
+use crate::config::PaymentRecorderData;
+use crate::config::Key;
 use std::collections::HashMap;
 use anyhow::Result;
 use csv::Writer;
 use std::fs::OpenOptions;
-use crate::types::config::Metrics;
-use crate::types::config::Status;
+use crate::config::Metrics;
+use crate::config::Status;
 
 pub trait Recorder {
     fn record_transaction(

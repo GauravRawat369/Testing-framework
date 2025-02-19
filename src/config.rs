@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use core::ops::Deref;
 use std::collections::HashMap;
-use crate::simulate::user::Sampler;
+use crate::user::Sampler;
 use std::path::Path;
 use anyhow::{ensure, Context, Result};
 use rand::Rng;
