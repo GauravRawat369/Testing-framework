@@ -1,5 +1,5 @@
 use error_stack::ResultExt;
-use success_rate::{success_rate_calculator_client::SuccessRateCalculatorClient, CalSuccessRateConfig, CalSuccessRateRequest, CalSuccessRateResponse, SuccessRateSpecificityLevel as ProtoSpecificityLevel};
+use success_rate::{success_rate_calculator_client::SuccessRateCalculatorClient, CalSuccessRateConfig, CalSuccessRateRequest, CalSuccessRateResponse, LabelWithStatus, SuccessRateSpecificityLevel as ProtoSpecificityLevel, UpdateSuccessRateWindowConfig, UpdateSuccessRateWindowRequest, UpdateSuccessRateWindowResponse};
 use super::{create_grpc_request, health_check_client::{Client, CustomResult}};
 use crate::types::Key;
 
@@ -75,14 +75,14 @@ pub trait SuccessBasedDynamicRouting: dyn_clone::DynClone + Send + Sync {
         headers: GrpcHeaders,
     ) -> DynamicRoutingResult<CalSuccessRateResponse>;
 
-    // async fn update_success_rate(
-    //     &self,
-    //     id: String,
-    //     success_rate_based_config: SuccessBasedRoutingConfig,
-    //     params: String,
-    //     connector_list: Vec<Key>,
-    //     headers: GrpcHeaders,
-    // ) -> DynamicRoutingResult<UpdateSuccessRateWindowResponse>;
+    async fn update_success_rate(
+        &self,
+        id: String,
+        success_rate_based_config: SuccessBasedRoutingConfig,
+        params: String,
+        connector_list: Vec<LabelWithStatus>,
+        headers: GrpcHeaders,
+    ) -> DynamicRoutingResult<UpdateSuccessRateWindowResponse>;
 }
 
 #[async_trait::async_trait]
@@ -123,42 +123,43 @@ impl SuccessBasedDynamicRouting for SuccessRateCalculatorClient<Client> {
         Ok(response)
     }
 
-    // async fn update_success_rate(
-    //     &self,
-    //     id: String,
-    //     success_rate_based_config: SuccessBasedRoutingConfig,
-    //     params: String,
-    //     connector_list: Vec<Key>,
-    //     headers: GrpcHeaders
-    // ) -> DynamicRoutingResult<UpdateSuccessRateWindowResponse> {
-    //     let config = foreign_try_from_2(success_rate_based_config).map_err(|err| {
-    //         DynamicRoutingError::SuccessRateBasedRoutingFailure(err.to_string())
-    //     })?;
+    async fn update_success_rate(
+        &self,
+        id: String,
+        success_rate_based_config: SuccessBasedRoutingConfig,
+        params: String,
+        connector_list_with_status: Vec<LabelWithStatus>,
+        headers: GrpcHeaders
+    ) -> DynamicRoutingResult<UpdateSuccessRateWindowResponse> {
 
-    //     let connector_list = connector_list.into_iter().map(|key| key.0).collect();
+        let config = foreign_try_from_2(success_rate_based_config).map_err(|err| {
+            DynamicRoutingError::SuccessRateBasedRoutingFailure(err.to_string())
+        })?;
 
-    //     let request = create_grpc_request(
-    //         UpdateSuccessRateWindowRequest {
-    //             id,
-    //             params,
-    //             labels_with_status: connector_list,
-    //             config: Some(config),
-    //             global_labels_with_status,
-    //         },
-    //         headers,
-    //     );
+        // let connector_list = connector_list_with_status.into_iter().map(|key| key.0).collect();
 
-    //     let response = self
-    //         .clone()
-    //         .update_success_rate_window(request)
-    //         .await
-    //         .change_context(DynamicRoutingError::SuccessRateBasedRoutingFailure(
-    //             "Error while updating success rate".to_string(),
-    //         ))?
-    //         .into_inner();
+        let request = create_grpc_request(
+            UpdateSuccessRateWindowRequest {
+                id,
+                params,
+                labels_with_status: connector_list_with_status.clone(),
+                config: Some(config),
+                global_labels_with_status: connector_list_with_status.clone(),
+            },
+            headers,
+        );
 
-    //     Ok(response)
-    // }
+        let response = self
+            .clone()
+            .update_success_rate_window(request)
+            .await
+            .change_context(DynamicRoutingError::SuccessRateBasedRoutingFailure(
+                "Error while updating success rate".to_string(),
+            ))?
+            .into_inner();
+
+        Ok(response)
+    }
 }
 
 fn get_required_value<T>(
@@ -204,5 +205,36 @@ fn foreign_try_from(config: SuccessBasedRoutingConfig) -> Result<CalSuccessRateC
 //             .change_context(DynamicRoutingError::MissingRequiredField {
 //                 field: "current_block_threshold".to_string(),
 //             })?)
+//     })
+// }
+
+fn foreign_try_from_2(config: SuccessBasedRoutingConfig) -> Result<UpdateSuccessRateWindowConfig, Error> {
+    Ok(UpdateSuccessRateWindowConfig {
+        max_aggregates_size: get_required_value(config.max_aggregates_size, "max_aggregates_size")
+            .change_context(DynamicRoutingError::MissingRequiredField {
+                field: "max_aggregates_size".to_string(),
+            })?,
+        current_block_threshold: config.current_block_threshold
+            .map(|current_block_threshold| {
+                success_rate::CurrentBlockThreshold {
+                    duration_in_mins: current_block_threshold.duration_in_mins,
+                    max_total_count: get_required_value(current_block_threshold.max_total_count, "max_total_count")
+                        .change_context(DynamicRoutingError::MissingRequiredField {
+                            field: "max_total_count".to_string(),
+                        }).unwrap(),
+                }
+            })
+    })
+}
+
+// fn foreign_try_from_3(current_threshold: CurrentBlockThreshold) -> Result<CurrentBlockThreshold, Error> {
+//     Ok(CurrentBlockThreshold {
+//         duration_in_mins: current_threshold.duration_in_mins,
+//         max_total_count: current_threshold
+//             .max_total_count
+//             .get_required_value(current_threshold.max_total_count, "max_total_count")
+//             .change_context(DynamicRoutingError::MissingRequiredField {
+//                 field: "max_total_count".to_string(),
+//             })?,
 //     })
 // }

@@ -3,7 +3,7 @@ pub mod success_rate_client;
 use std::fmt::Debug;
 pub const TENANT_HEADER: &str = "x-tenant-id";
 pub const X_REQUEST_ID: &str = "x-request-id";
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct GrpcHeaders {
     /// Tenant id
     pub tenant_id: String,

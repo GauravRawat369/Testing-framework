@@ -1,13 +1,14 @@
+use std::collections::HashMap;
+
 use anyhow::Result;
 use testing_framework::grpc_clients::health_check_client::{build_connections, perform_health_check};
-use testing_framework::grpc_clients::success_rate_client::success_rate::LabelWithScore;
+use testing_framework::grpc_clients::success_rate_client::success_rate::{LabelWithScore, LabelWithStatus};
 use testing_framework::grpc_clients::GrpcHeaders;
 use testing_framework::{types::Config, sampler::Sampler};
 use testing_framework::types::{find_suitable_connectors, Key, PaymentRecorderData, Status, StraightThroughRouting};
 use testing_framework::evaluator::Evaluator;
 use testing_framework::recorder::Recorder;
 use testing_framework::types::Metrics;
-// use testing_framework::grpc_clients::success_rate_client::SuccesBasedDynamicRouting;
 use testing_framework::grpc_clients::success_rate_client::{CurrentBlockThreshold, SuccessBasedDynamicRouting, SuccessBasedRoutingConfig};
 use hyper_util::client::legacy::connect::HttpConnector;
 use http_body_util::combinators::UnsyncBoxBody;
@@ -24,72 +25,57 @@ use testing_framework::grpc_clients::success_rate_client::success_rate::success_
 
 pub type Client = hyper_util::client::legacy::Client<HttpConnector, UnsyncBoxBody<Bytes, tonic::Status>>;
 
-fn generate_user_sample(config: &Config) -> Result<(String, Vec<Key>)> {
+fn generate_user_sample(config: &Config) -> Result<(String, String, Vec<Key>)> {
     let output = config.user.generate_sample()?;
     let connectors = find_suitable_connectors(&output, &config.merchant);
+    let params = flatten_payment_info(output.clone());
     let output = serde_json::to_string_pretty(&output)?;
-    Ok((output, connectors))
+    println!("User sample: {}", output);
+    Ok((params, output, connectors))
 }
 
-// #[async_trait::async_trait]
-// impl SuccessBasedDynamicRouting for SuccessRateCalculatorClient<Client> {
-//     async fn calculate_success_rate(
-//         &self,
-//         id: String,
-//         success_rate_based_config: SuccessBasedRoutingConfig,
-//         params: String,
-//         connector_list: Vec<Key>,
-//         headers: GrpcHeaders
-//     ) -> DynamicRoutingResult<CalSuccessRateResponse> {
-//         let connector_list = connector_list.into_iter().map(|key| key.0).collect();
-    
-//         let config = foreign_try_from(success_rate_based_config).map_err(|err| {
-//             DynamicRoutingError::SuccessRateBasedRoutingFailure(err.to_string())
-//         })?;
-    
-//         let request = create_grpc_request(
-//             CalSuccessRateRequest {
-//                 id,
-//                 params,
-//                 labels: connector_list,
-//                 config: Some(config),
-//             },
-//             headers,
-//         );
-    
-//         let response = self
-//             .clone()
-//             .fetch_success_rate(request)
-//             .await
-//             .change_context(DynamicRoutingError::SuccessRateBasedRoutingFailure(
-//                 "Error while fetching success rate".to_string(),
-//             ))?
-//             .into_inner();
-    
-//         Ok(response)
-//     }
-// }
+fn flatten_payment_info(payment_info: HashMap<Key, Key>) -> String {
+    // Assuming we know the keys we're interested in, like "payment_methods", "payment_method_type", and "currency"
+    let payment_methods = payment_info.get(&Key("payment_methods".to_string())).map(|k| &k.0).unwrap();
+    let currency = payment_info.get(&Key("currency".to_string())).map(|k| &k.0).unwrap();
+    let payment_method_type = payment_info.get(&Key("payment_method_type".to_string())).map(|k| &k.0);
+    match payment_method_type {
+        Some(pmt) => {
+            return format!(
+                "id:{}:{}:{}",
+                payment_methods, pmt, currency
+            )
+        }
+        None => {
+            return format!(
+                "id:{}:{}",
+                payment_methods, currency
+            )
+        }
+    }
+}
 
-async fn call_script(metrics: &mut Metrics) -> Result<()> {
+fn convert_to_label_with_status(connector: String, res: &Result<Status>) -> Vec<LabelWithStatus> {
+    let status = match res {
+        Ok(Status::Success) => true,
+        Ok(Status::Failure) => false,
+        Err(_) => false
+    };
+    vec![LabelWithStatus {
+        label: connector,
+        status,
+    }]
+}
 
+async fn setup() -> Result<(Config, RoutingStrategy)> {
     let config = Config::load()?;
-    let (user_sample, connectors) = generate_user_sample(&config)?;
-    println!("User sample: {}", user_sample);
-    if connectors.is_empty() {
-        println!("No connectors available for this user in merchant config.");
-        return Ok(());
-    }
-    println!("Available connectors for this user:");
-    for connector in &connectors {
-        println!("{}", connector.0);
-    }
 
     let client =
     hyper_util::client::legacy::Client::builder(hyper_util::rt::TokioExecutor::new())
         .http2_only(true)
         .build_http();
 
-        let health_client = build_connections(client.clone())
+    let health_client = build_connections(client.clone())
         .await
         .expect("Failed to build gRPC connections");
 
@@ -107,15 +93,31 @@ async fn call_script(metrics: &mut Metrics) -> Result<()> {
 
     println!("{:?}", dynamic_routing_connection);
 
+    Ok((config, dynamic_routing_connection))
+}
+
+async fn call_script(config: &Config, dynamic_routing_connection: RoutingStrategy, metrics: &mut Metrics) -> Result<()> {
+
+    let (params, user_sample, connectors) = generate_user_sample(&config)?;
+
+    if connectors.is_empty() {
+        println!("No connectors available for this user in merchant config.");
+        return Ok(())
+    }
+    println!("Available connectors for this user:");
+    for connector in &connectors {
+        println!("{}", connector.0);
+    }
+
     let success_rate_client: SuccessRateCalculatorClient<Client> = dynamic_routing_connection.success_rate_client.unwrap();
 
     let success_based_routing_config = SuccessBasedRoutingConfig {
         min_aggregates_size: Some(2),
         default_success_rate: Some(100.0),
-        max_aggregates_size: Some(10),
+        max_aggregates_size: Some(3),
         current_block_threshold: Some(CurrentBlockThreshold{
             duration_in_mins: Some(5),
-            max_total_count: Some(10)
+            max_total_count: Some(2)
         }),
         specificity_level: testing_framework::grpc_clients::success_rate_client::SuccessRateSpecificityLevel::Merchant
     };
@@ -128,10 +130,10 @@ async fn call_script(metrics: &mut Metrics) -> Result<()> {
     let success_based_connectors = success_rate_client
         .calculate_success_rate(
             "id".to_string(),
-            success_based_routing_config,
-            user_sample.clone(),
+            success_based_routing_config.clone(),
+            params.clone(),
             connectors.clone(),
-            headers,
+            headers.clone(),
         )
         .await
         .expect("Failed to calculate success rate");
@@ -141,7 +143,22 @@ async fn call_script(metrics: &mut Metrics) -> Result<()> {
     let connector = Key(get_highest_score_connector(success_based_connectors.labels_with_score).unwrap().clone());
 
     println!("Using connector: {:?}", connector.0);
-    match config.psp.call_evaluator(&connector, &user_sample)? {
+    let res = config.psp.call_evaluator(&connector, &user_sample);
+
+    let connector_list_with_status = convert_to_label_with_status(connector.0.clone(), &res);
+
+    success_rate_client
+        .update_success_rate(
+            "id".to_string(),
+            success_based_routing_config,
+            params.clone(),
+            connector_list_with_status,
+            headers,
+        )
+        .await
+        .expect("Failed to update success rate");   
+
+    match &res? {
         Status::Success => {
             println!("Transaction succeeded.");
             // Call recorder
@@ -202,9 +219,11 @@ pub async fn get_dynamic_routing_connection(        client: Client,
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    let (config, dynamic_routing_connection) = setup().await?;
+
     let mut metrics = Metrics::new();
-    for _ in 0..10 {
-        call_script(&mut metrics).await?;
+    for _ in 0..100 {
+        call_script(&config, dynamic_routing_connection.clone(), &mut metrics).await?;
     }
     // Use recorder to print metrics
     testing_framework::recorder::print_metrics(&metrics);
