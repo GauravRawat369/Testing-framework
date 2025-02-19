@@ -1,5 +1,5 @@
-pub mod evaluate;
-pub mod user;
+pub mod evaluator;
+pub mod sampler;
 pub mod config;
-pub mod record;
+pub mod recorder;
 

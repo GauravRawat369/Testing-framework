@@ -1,1 +1,2 @@
 adyen,Success,card,debit
+adyen,Failure,card,credit
