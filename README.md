@@ -81,6 +81,33 @@ adyen,Success,bnpl,debit
 stripe,Failure,bnpl,debit
 ```
 
+OutPut:
+ ```
+Connector: "adyen", Success Rate: 38.46%
+Connector: "adyen", Payment Method: "card", Success Rate: 40.00%
+Connector: "adyen", Payment Method: "card", Payment Method Type: "credit", Success Rate: 40.00%
+Connector: "adyen", Payment Method: "card", Payment Method Type: "debit", Success Rate: 40.00%
+Connector: "adyen", Payment Method: "wallet", Success Rate: 37.68%
+Connector: "adyen", Payment Method: "wallet", Payment Method Type: "N/A", Success Rate: 37.68%
+Connector: "stripe", Success Rate: 100.00%
+Connector: "stripe", Payment Method: "card", Success Rate: 100.00%
+Connector: "stripe", Payment Method: "card", Payment Method Type: "debit", Success Rate: 100.00%
+Connector: "stripe", Payment Method: "card", Payment Method Type: "credit", Success Rate: 100.00%
+Connector: "paypal", Success Rate: 35.14%
+Connector: "paypal", Payment Method: "bnpl", Success Rate: 31.65%
+Connector: "paypal", Payment Method: "bnpl", Payment Method Type: "N/A", Success Rate: 31.65%
+Connector: "paypal", Payment Method: "card", Success Rate: 43.75%
+Connector: "paypal", Payment Method: "card", Payment Method Type: "debit", Success Rate: 52.38%
+Connector: "paypal", Payment Method: "card", Payment Method Type: "credit", Success Rate: 27.27%
+
+
+Total transactions: 1500
+Total transactions from "adyen" connector: 6.93%
+Total transactions from "stripe" connector: 85.67%
+Total transactions from "paypal" connector: 7.40%
+Total Success Rate: 90.93%
+ ```
+
 ## How to Run
 
 1. Manually edit the iteration count in the main loop in main.rs (e.g., change the `for _ in 0..1500` loop to your desired number of runs).
